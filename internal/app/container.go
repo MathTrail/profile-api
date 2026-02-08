@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/mathtrail/mathtrail-profile/internal/cache"
 	"github.com/mathtrail/mathtrail-profile/internal/config"
+	"github.com/mathtrail/mathtrail-profile/internal/dapr"
 	"github.com/mathtrail/mathtrail-profile/internal/database"
 	"github.com/mathtrail/mathtrail-profile/internal/profile"
 )
@@ -20,10 +22,14 @@ type Container struct {
 	ProfileRepository profile.Repository
 	ProfileService    profile.Service
 	ProfileController *profile.Controller
+	EventHandler      *dapr.EventHandler
 }
 
 // NewContainer initializes all dependencies and returns the DI container.
 func NewContainer(cfg *config.Config) *Container {
+	// Logger
+	logger, _ := zap.NewProduction()
+
 	// Database
 	db := database.NewConnection(cfg)
 
@@ -41,11 +47,21 @@ func NewContainer(cfg *config.Config) *Container {
 	profileService := profile.NewService(profileRepo, profileCache)
 	profileController := profile.NewController(profileService)
 
+	// Dapr event handler
+	eventHandler := dapr.NewEventHandler(
+		profileService,
+		logger,
+		"pubsub",
+		cfg.TopicUserRegistered,
+		cfg.TopicTaskSolved,
+	)
+
 	return &Container{
 		DB:                db,
 		ProfileRepository: profileRepo,
 		ProfileService:    profileService,
 		ProfileController: profileController,
+		EventHandler:      eventHandler,
 	}
 }
 

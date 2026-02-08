@@ -7,11 +7,12 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/mathtrail/mathtrail-profile/internal/dapr"
 	"github.com/mathtrail/mathtrail-profile/internal/profile"
 )
 
 // NewRouter creates a Gin engine with all routes, middleware, and Swagger UI.
-func NewRouter(profileController *profile.Controller) *gin.Engine {
+func NewRouter(profileController *profile.Controller, eventHandler *dapr.EventHandler) *gin.Engine {
 	router := gin.Default()
 
 	// Health check
@@ -20,6 +21,9 @@ func NewRouter(profileController *profile.Controller) *gin.Engine {
 	// API v1 routes
 	api := router.Group("/api/v1")
 	profileController.RegisterRoutes(api)
+
+	// Dapr pub/sub subscription and event handler routes
+	eventHandler.RegisterRoutes(router)
 
 	// Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

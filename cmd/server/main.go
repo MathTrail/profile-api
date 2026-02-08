@@ -28,10 +28,8 @@ func main() {
 	container := app.NewContainer(cfg)
 	defer container.Close()
 
-	// Setup Gin router with all routes and Swagger
-	router := server.NewRouter(container.ProfileController)
-
-	// TODO: Register Dapr pub/sub endpoints (Stage 4)
+	// Setup Gin router with all routes, Dapr handlers, and Swagger
+	router := server.NewRouter(container.ProfileController, container.EventHandler)
 
 	// Start server
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)

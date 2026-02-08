@@ -827,10 +827,10 @@ const (
 ## Stage 4: Dapr/Event Integration
 
 ### Objectives
-- [ ] Set up Dapr pub/sub subscriber
-- [ ] Implement user-registered event handler
-- [ ] Implement task-solved event handler
-- [ ] Configure Dapr components
+- [x] Set up Dapr pub/sub subscriber
+- [x] Implement user-registered event handler
+- [x] Implement task-solved event handler
+- [x] Configure Dapr components
 
 ### Tasks
 
@@ -1338,10 +1338,10 @@ Update main `README.md` with:
 - [x] Swagger documentation added
 
 ### Stage 4: Events
-- [ ] Dapr components configured
-- [ ] user-registered handler implemented
-- [ ] task-solved handler implemented
-- [ ] Event models defined
+- [x] Dapr components configured
+- [x] user-registered handler implemented
+- [x] task-solved handler implemented
+- [x] Event models defined
 
 ### Stage 5: Testing & Observability
 - [ ] Unit tests written and passing

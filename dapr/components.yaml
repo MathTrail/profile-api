@@ -12,3 +12,27 @@ spec:
     value: profile-service
   - name: authType
     value: none
+---
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: user-registered-sub
+spec:
+  pubsubname: pubsub
+  topic: user-registered
+  routes:
+    default: /events/user-registered
+scopes:
+  - profile-service
+---
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: task-solved-sub
+spec:
+  pubsubname: pubsub
+  topic: task-solved
+  routes:
+    default: /events/task-solved
+scopes:
+  - profile-service
