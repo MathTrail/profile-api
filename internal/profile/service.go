@@ -38,8 +38,8 @@ type serviceImpl struct {
 }
 
 // NewService creates a new profile service with cache-aside pattern.
-func NewService(repo Repository, cache Cache) Service {
-	return &serviceImpl{repo: repo, cache: cache}
+func NewService(repo Repository, cache Cache, logger *zap.Logger) Service {
+	return &serviceImpl{repo: repo, cache: cache, logger: logger}
 }
 
 func (s *serviceImpl) GetProfile(ctx context.Context, userID string) (*Profile, error) {

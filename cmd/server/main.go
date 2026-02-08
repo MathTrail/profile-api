@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/mathtrail/mathtrail-profile/internal/app"
 	"github.com/mathtrail/mathtrail-profile/internal/config"
@@ -33,8 +34,10 @@ func main() {
 	container := app.NewContainer(cfg)
 	defer container.Close()
 
+	logger := container.Logger
+
 	// Setup Gin router with all routes, Dapr handlers, and Swagger
-	router := server.NewRouter(container.ProfileController, container.EventHandler, container)
+	router := server.NewRouter(container.ProfileController, container.EventHandler, container, logger)
 
 	// Create HTTP server
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
@@ -49,23 +52,25 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Profile Service starting on %s", addr)
-		log.Printf("Swagger UI available at http://localhost:%s/swagger/index.html", cfg.ServerPort)
+		logger.Info("Profile Service starting",
+			zap.String("addr", addr),
+			zap.String("swagger", fmt.Sprintf("http://localhost:%s/swagger/index.html", cfg.ServerPort)),
+		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("failed to start server: %v", err)
+			logger.Fatal("failed to start server", zap.Error(err))
 		}
 	}()
 
 	// Block until signal received
 	<-ctx.Done()
-	log.Println("Shutdown signal received, draining connections...")
+	logger.Info("shutdown signal received, draining connections...")
 
 	// Give in-flight requests time to complete
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("server shutdown failed: %v", err)
+		logger.Fatal("server shutdown failed", zap.Error(err))
 	}
-	log.Println("Server stopped gracefully")
+	logger.Info("server stopped gracefully")
 }

@@ -974,191 +974,16 @@ Infrastructure (PostgreSQL, Redis, Kafka) is deployed via Skaffold's `requires` 
 
 ---
 
-## Stage 5: Testing & Observability
+## Stage 5: Observability
 
 ### Objectives
-- [ ] Implement unit tests
-- [ ] Set up integration tests
-- [ ] Create k6 scenario & load tests
-- [ ] Configure logging and tracing
-- [ ] Add metrics collection
+- [x] Configure logging and tracing
+- [x] Baseline metrics via Dapr sidecar
+- [x] (skip) Custom business metrics (deferred until SLOs defined)
 
 ### Tasks
 
-#### 5.1 Unit Tests with testify
-**File:** `internal/profile/repository_test.go`, `internal/profile/service_test.go`
-
-Use testify for assertions:
-
-```go
-import "github.com/stretchr/testify/assert"
-import "github.com/stretchr/testify/require"
-
-func TestCreateProfile(t *testing.T) {
-    // Arrange
-    profile := &Profile{UserID: "test-user", Name: "Test"}
-    
-    // Act
-    err := repo.CreateProfile(context.Background(), profile)
-    
-    // Assert
-    require.NoError(t, err)
-    assert.NotZero(t, profile.ID)
-}
-```
-
-Test:
-- Profile creation with GORM
-- Profile retrieval with Preload
-- Skill updates and upserts
-- Progress updates
-- Redis cache hit / cache miss behavior
-- Cache invalidation after profile mutations
-- Error scenarios (not found, validation, Redis unavailable)
-- Concurrent operations
-
-#### 5.2 Integration Tests with testify
-**File:** `test/integration_test.go`
-
-Use testify + k3d cluster for integration tests:
-
-```go
-import "github.com/stretchr/testify/suite"
-
-type ProfileIntegrationSuite struct {
-    suite.Suite
-    db *gorm.DB
-    client *http.Client
-}
-
-func (s *ProfileIntegrationSuite) TestGetProfileEndpoint() {
-    // Create profile via API or directly
-    // Call GET /profile/{userId}
-    // Assert response status and body
-}
-```
-
-Test:
-- Full API flow: GET /profile/{userId} with Gin
-- Cache-aside flow: first call populates Redis, second call returns cached
-- Cache invalidation: update profile → next GET fetches from DB
-- Event handling: Dapr pub/sub messages
-- GORM transaction handling
-- Dapr client integration
-- Redis + Database cleanup between tests
-
-#### 5.3 k6 Scenario Tests (REST API)
-**Directory:** `k6/scenarios/`
-
-Each file is a self-contained scenario test. Example:
-
-**File:** `k6/scenarios/profile-crud.js`
-
-```javascript
-import http from 'k6/http';
-import { check, group, sleep } from 'k6';
-
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-
-export const options = {
-    scenarios: {
-        smoke: {
-            executor: 'shared-iterations',
-            vus: 1,
-            iterations: 1,
-        },
-    },
-    thresholds: {
-        http_req_failed: ['rate==0'],
-        http_req_duration: ['p(95)<500'],
-    },
-};
-
-export default function () {
-    group('Health check', () => {
-        const res = http.get(`${BASE_URL}/health`);
-        check(res, {
-            'health status 200': (r) => r.status === 200,
-            'health body ok': (r) => r.json().status === 'ok',
-        });
-    });
-
-    group('Get profile', () => {
-        const res = http.get(`${BASE_URL}/api/v1/profile/kratos-user-123`);
-        check(res, {
-            'profile status 200 or 404': (r) => [200, 404].includes(r.status),
-        });
-    });
-
-    group('Get profile - not found', () => {
-        const res = http.get(`${BASE_URL}/api/v1/profile/nonexistent-user`);
-        check(res, {
-            'not found status 404': (r) => r.status === 404,
-        });
-    });
-
-    sleep(0.5);
-}
-```
-
-#### 5.4 k6 Load Tests
-**Directory:** `k6/load/`
-
-Each file targets a specific workload pattern. Example:
-
-**File:** `k6/load/profile-read.js`
-
-```javascript
-import http from 'k6/http';
-import { check, sleep } from 'k6';
-
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-
-export const options = {
-    stages: [
-        { duration: '30s', target: 20 },   // Ramp up to 20 VUs
-        { duration: '1m',  target: 20 },   // Hold at 20 VUs
-        { duration: '30s', target: 50 },   // Ramp up to 50 VUs
-        { duration: '1m',  target: 50 },   // Hold at 50 VUs
-        { duration: '30s', target: 0 },    // Ramp down
-    ],
-    thresholds: {
-        http_req_duration: ['p(95)<200', 'p(99)<500'],
-        http_req_failed: ['rate<0.01'],
-    },
-};
-
-export default function () {
-    const res = http.get(`${BASE_URL}/api/v1/profile/kratos-user-123`);
-    check(res, {
-        'status is 200 or 404': (r) => [200, 404].includes(r.status),
-        'response time < 500ms': (r) => r.timings.duration < 500,
-    });
-
-    sleep(0.1);
-}
-```
-
-Run against the service deployed in k3d:
-```bash
-# Port-forward the service
-kubectl port-forward svc/mathtrail-profile 8080:8080 -n mathtrail &
-
-# Run all scenario tests
-just k6-scenarios
-
-# Run all load tests
-just k6-load
-
-# Run a specific test file
-just k6-run k6/scenarios/profile-crud.js
-just k6-run k6/load/profile-read.js
-
-# Run with custom base URL
-k6 run -e BASE_URL=http://localhost:8080 k6/load/profile-read.js
-```
-
-#### 5.5 Logging
+#### 5.1 Logging
 Use `zap` for structured logging:
 
 ```go
@@ -1169,7 +994,7 @@ logger.Info("profile created",
 )
 ```
 
-#### 5.6 Metrics & Tracing
+#### 5.2 Metrics & Tracing
 Integrate with Dapr sideca & observability stack:
 - Profile creation count (counter metric)
 - API response times (histogram)
@@ -1178,7 +1003,7 @@ Integrate with Dapr sideca & observability stack:
 - Trace correlation IDs across services
 - Export metrics/traces to observability backend (Prometheus, Jaeger, etc.)
 
-#### 5.7 Tracing
+#### 5.3 Tracing
 Integration with distributed tracing:
 - Trace profile creation events
 - Trace API calls
@@ -1313,6 +1138,126 @@ Update main `README.md` with:
 
 ---
 
+## Stage 7: k6 Integration Testing
+
+### Objectives
+- [ ] Create k6 scenario & load tests
+
+### Tasks
+
+#### 7.1 k6 Scenario Tests (REST API)
+**Directory:** `k6/scenarios/`
+
+Each file is a self-contained scenario test. Example:
+
+**File:** `k6/scenarios/profile-crud.js`
+
+```javascript
+import http from 'k6/http';
+import { check, group, sleep } from 'k6';
+
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+
+export const options = {
+    scenarios: {
+        smoke: {
+            executor: 'shared-iterations',
+            vus: 1,
+            iterations: 1,
+        },
+    },
+    thresholds: {
+        http_req_failed: ['rate==0'],
+        http_req_duration: ['p(95)<500'],
+    },
+};
+
+export default function () {
+    group('Health check', () => {
+        const res = http.get(`${BASE_URL}/health`);
+        check(res, {
+            'health status 200': (r) => r.status === 200,
+            'health body ok': (r) => r.json().status === 'ok',
+        });
+    });
+
+    group('Get profile', () => {
+        const res = http.get(`${BASE_URL}/api/v1/profile/kratos-user-123`);
+        check(res, {
+            'profile status 200 or 404': (r) => [200, 404].includes(r.status),
+        });
+    });
+
+    group('Get profile - not found', () => {
+        const res = http.get(`${BASE_URL}/api/v1/profile/nonexistent-user`);
+        check(res, {
+            'not found status 404': (r) => r.status === 404,
+        });
+    });
+
+    sleep(0.5);
+}
+```
+
+#### 7.2 k6 Load Tests
+**Directory:** `k6/load/`
+
+Each file targets a specific workload pattern. Example:
+
+**File:** `k6/load/profile-read.js`
+
+```javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+
+export const options = {
+    stages: [
+        { duration: '30s', target: 20 },   // Ramp up to 20 VUs
+        { duration: '1m',  target: 20 },   // Hold at 20 VUs
+        { duration: '30s', target: 50 },   // Ramp up to 50 VUs
+        { duration: '1m',  target: 50 },   // Hold at 50 VUs
+        { duration: '30s', target: 0 },    // Ramp down
+    ],
+    thresholds: {
+        http_req_duration: ['p(95)<200', 'p(99)<500'],
+        http_req_failed: ['rate<0.01'],
+    },
+};
+
+export default function () {
+    const res = http.get(`${BASE_URL}/api/v1/profile/kratos-user-123`);
+    check(res, {
+        'status is 200 or 404': (r) => [200, 404].includes(r.status),
+        'response time < 500ms': (r) => r.timings.duration < 500,
+    });
+
+    sleep(0.1);
+}
+```
+
+Run against the service deployed in k3d:
+```bash
+# Port-forward the service
+kubectl port-forward svc/mathtrail-profile 8080:8080 -n mathtrail &
+
+# Run all scenario tests
+just k6-scenarios
+
+# Run all load tests
+just k6-load
+
+# Run a specific test file
+just k6-run k6/scenarios/profile-crud.js
+just k6-run k6/load/profile-read.js
+
+# Run with custom base URL
+k6 run -e BASE_URL=http://localhost:8080 k6/load/profile-read.js
+```
+
+---
+
 ## Summary Checklist
 
 ### Stage 1: Project Setup
@@ -1343,13 +1288,10 @@ Update main `README.md` with:
 - [x] task-solved handler implemented
 - [x] Event models defined
 
-### Stage 5: Testing & Observability
-- [ ] Unit tests written and passing
-- [ ] Integration tests written and passing
-- [ ] k6 scenario tests passing
-- [ ] k6 load tests passing (p95 < 20ms)
-- [ ] Logging configured
-- [ ] Metrics collection enabled
+### Stage 5: Observability
+- [x] Logging configured
+- [x] Baseline metrics collection enabled (Dapr)
+- [x] (skip) Custom business metrics (deferred)
 
 ### Stage 6: Documentation & Deployment
 - [ ] API documentation complete
@@ -1357,6 +1299,10 @@ Update main `README.md` with:
 - [ ] Deployment guides written
 - [ ] Helm charts configured
 - [ ] README updated
+
+### Stage 7: k6 Integration Testing
+- [ ] k6 scenario tests passing
+- [ ] k6 load tests passing (p95 < 20ms)
 
 ---
 

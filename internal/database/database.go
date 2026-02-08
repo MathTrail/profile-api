@@ -1,28 +1,39 @@
 package database
 
 import (
-	"log"
-
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/mathtrail/mathtrail-profile/internal/config"
+	"github.com/mathtrail/mathtrail-profile/internal/logging"
 )
 
 // NewConnection opens a GORM PostgreSQL connection using the provided config.
-func NewConnection(cfg *config.Config) *gorm.DB {
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+// SQL queries are logged through the zap-based GORM logger.
+func NewConnection(cfg *config.Config, logger *zap.Logger) *gorm.DB {
+	gormLogger := logging.NewGormLogger(logger)
+
+	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
+		Logger: gormLogger,
+	})
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.Fatal("failed to connect to database", zap.Error(err))
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("failed to get underlying sql.DB: %v", err)
+		logger.Fatal("failed to get underlying sql.DB", zap.Error(err))
 	}
 
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(5)
+
+	logger.Info("database connection established",
+		zap.String("host", cfg.DBHost),
+		zap.String("port", cfg.DBPort),
+		zap.String("dbname", cfg.DBName),
+	)
 
 	return db
 }

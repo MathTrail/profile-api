@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 
 	"github.com/mathtrail/mathtrail-profile/internal/dapr"
 	"github.com/mathtrail/mathtrail-profile/internal/profile"
@@ -18,8 +19,15 @@ type ReadinessChecker interface {
 }
 
 // NewRouter creates a Gin engine with all routes, middleware, and Swagger UI.
-func NewRouter(profileController *profile.Controller, eventHandler *dapr.EventHandler, readiness ReadinessChecker) *gin.Engine {
-	router := gin.Default()
+// It replaces gin.Default() with zap-based request logging and panic recovery.
+func NewRouter(profileController *profile.Controller, eventHandler *dapr.EventHandler, readiness ReadinessChecker, logger *zap.Logger) *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+
+	// Middleware: request ID → zap request logger → panic recovery
+	router.Use(RequestID())
+	router.Use(ZapLogger(logger.Named("http")))
+	router.Use(ZapRecovery(logger.Named("http")))
 
 	// Health probes (mathtrail-service-lib contract)
 	router.GET("/health/startup", startupCheck)

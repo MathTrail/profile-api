@@ -2,22 +2,26 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
+
+	"go.uber.org/zap"
 
 	"github.com/mathtrail/mathtrail-profile/internal/config"
 	"github.com/mathtrail/mathtrail-profile/internal/database"
+	"github.com/mathtrail/mathtrail-profile/internal/logging"
 )
 
 // migrate applies SQL migration files against the PostgreSQL database.
 // Used by the Helm migration Job (mathtrail-service-lib contract).
 func main() {
 	cfg := config.Load()
+	logger := logging.NewLogger(cfg.LogLevel)
+	defer logger.Sync()
 
-	db := database.NewConnection(cfg)
+	db := database.NewConnection(cfg, logger)
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("failed to get underlying sql.DB: %v", err)
+		logger.Fatal("failed to get underlying sql.DB", zap.Error(err))
 	}
 	defer sqlDB.Close()
 
@@ -25,7 +29,7 @@ func main() {
 
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
-		log.Fatalf("failed to read migrations directory %s: %v", migrationsDir, err)
+		logger.Fatal("failed to read migrations directory", zap.String("dir", migrationsDir), zap.Error(err))
 	}
 
 	applied := 0
@@ -34,22 +38,22 @@ func main() {
 			continue
 		}
 		filePath := fmt.Sprintf("%s/%s", migrationsDir, entry.Name())
-		log.Printf("Applying migration: %s", entry.Name())
+		logger.Info("applying migration", zap.String("file", entry.Name()))
 
 		content, err := os.ReadFile(filePath)
 		if err != nil {
-			log.Fatalf("failed to read migration file %s: %v", filePath, err)
+			logger.Fatal("failed to read migration file", zap.String("file", filePath), zap.Error(err))
 		}
 
 		if _, err := sqlDB.Exec(string(content)); err != nil {
-			log.Fatalf("failed to apply migration %s: %v", entry.Name(), err)
+			logger.Fatal("failed to apply migration", zap.String("file", entry.Name()), zap.Error(err))
 		}
 
 		applied++
-		log.Printf("Successfully applied: %s", entry.Name())
+		logger.Info("successfully applied", zap.String("file", entry.Name()))
 	}
 
-	log.Printf("Migration complete: %d file(s) applied", applied)
+	logger.Info("migration complete", zap.Int("applied", applied))
 }
 
 func getEnv(key, defaultValue string) string {

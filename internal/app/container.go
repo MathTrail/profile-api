@@ -14,6 +14,7 @@ import (
 	"github.com/mathtrail/mathtrail-profile/internal/config"
 	"github.com/mathtrail/mathtrail-profile/internal/dapr"
 	"github.com/mathtrail/mathtrail-profile/internal/database"
+	"github.com/mathtrail/mathtrail-profile/internal/logging"
 	"github.com/mathtrail/mathtrail-profile/internal/profile"
 )
 
@@ -21,6 +22,7 @@ import (
 type Container struct {
 	DB                *gorm.DB
 	RedisClient       *redis.Client
+	Logger            *zap.Logger
 	ProfileRepository profile.Repository
 	ProfileService    profile.Service
 	ProfileController *profile.Controller
@@ -30,10 +32,10 @@ type Container struct {
 // NewContainer initializes all dependencies and returns the DI container.
 func NewContainer(cfg *config.Config) *Container {
 	// Logger
-	logger, _ := zap.NewProduction()
+	logger := logging.NewLogger(cfg.LogLevel)
 
 	// Database
-	db := database.NewConnection(cfg)
+	db := database.NewConnection(cfg, logger)
 
 	// Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -41,12 +43,12 @@ func NewContainer(cfg *config.Config) *Container {
 		Password: cfg.RedisPassword,
 		DB:       cfg.RedisDB,
 	})
-	redisCache := cache.NewProfileCache(rdb, time.Duration(cfg.CacheTTLSeconds)*time.Second, nil)
+	redisCache := cache.NewProfileCache(rdb, time.Duration(cfg.CacheTTLSeconds)*time.Second, logger.Named("cache"))
 	profileCache := &profileCacheAdapter{cache: redisCache}
 
 	// Profile domain
 	profileRepo := profile.NewRepository(db)
-	profileService := profile.NewService(profileRepo, profileCache)
+	profileService := profile.NewService(profileRepo, profileCache, logger.Named("profile"))
 	profileController := profile.NewController(profileService)
 
 	// Dapr event handler
@@ -61,6 +63,7 @@ func NewContainer(cfg *config.Config) *Container {
 	return &Container{
 		DB:                db,
 		RedisClient:       rdb,
+		Logger:            logger,
 		ProfileRepository: profileRepo,
 		ProfileService:    profileService,
 		ProfileController: profileController,
@@ -73,6 +76,7 @@ func (c *Container) Close() {
 	sqlDB, _ := c.DB.DB()
 	sqlDB.Close()
 	c.RedisClient.Close()
+	_ = c.Logger.Sync()
 }
 
 // Ready checks that all downstream dependencies (DB, Redis) are reachable.
