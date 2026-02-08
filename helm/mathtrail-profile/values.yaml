@@ -7,7 +7,21 @@ image:
 service:
   port: 8080
 
-daprAppId: mathtrail-profile
+dapr:
+  enabled: true
+  appId: "mathtrail-profile"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+migration:
+  enabled: true
+  command: ["/migrate"]
 
 env:
   - name: SERVER_PORT

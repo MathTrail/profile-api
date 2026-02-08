@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -19,6 +20,7 @@ import (
 // Container holds all application dependencies wired together.
 type Container struct {
 	DB                *gorm.DB
+	RedisClient       *redis.Client
 	ProfileRepository profile.Repository
 	ProfileService    profile.Service
 	ProfileController *profile.Controller
@@ -58,6 +60,7 @@ func NewContainer(cfg *config.Config) *Container {
 
 	return &Container{
 		DB:                db,
+		RedisClient:       rdb,
 		ProfileRepository: profileRepo,
 		ProfileService:    profileService,
 		ProfileController: profileController,
@@ -69,6 +72,23 @@ func NewContainer(cfg *config.Config) *Container {
 func (c *Container) Close() {
 	sqlDB, _ := c.DB.DB()
 	sqlDB.Close()
+	c.RedisClient.Close()
+}
+
+// Ready checks that all downstream dependencies (DB, Redis) are reachable.
+// Used by the /health/ready probe.
+func (c *Container) Ready(ctx context.Context) error {
+	sqlDB, err := c.DB.DB()
+	if err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return fmt.Errorf("database ping failed: %w", err)
+	}
+	if err := c.RedisClient.Ping(ctx).Err(); err != nil {
+		return fmt.Errorf("redis ping failed: %w", err)
+	}
+	return nil
 }
 
 // profileCacheAdapter bridges cache.ProfileCache (no profile import) with profile.Cache interface.

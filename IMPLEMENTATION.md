@@ -1347,7 +1347,7 @@ Update main `README.md` with:
 - [ ] Unit tests written and passing
 - [ ] Integration tests written and passing
 - [ ] k6 scenario tests passing
-- [ ] k6 load tests passing (p95 < 200ms)
+- [ ] k6 load tests passing (p95 < 20ms)
 - [ ] Logging configured
 - [ ] Metrics collection enabled
 
