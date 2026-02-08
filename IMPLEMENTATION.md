@@ -43,18 +43,18 @@ Implement a Profile Service that manages user profiles in the MathTrail ecosyste
 - Skill and progress tracking via task-solved events (Kafka pub/sub)
 - PostgreSQL database backend with GORM ORM
 - Full observability integration via Dapr
-- Local development with Skaffold dev mode (depends on mathtrail-infra-local)
+- Local development with Skaffold dev mode (depends on mathtrail-infra-local, mathtrail-infra-testing)
 
 ---
 
 ## Stage 1: Project Setup & Configuration
 
 ### Objectives
-- [ ] Create DevContainer with all dependencies
-- [ ] Set up Go project structure
-- [ ] Configure Skaffold with infra-local dependency
-- [ ] Configure Dapr components
-- [ ] Initialize dependencies
+- [x] Create DevContainer with all dependencies
+- [x] Set up Go project structure
+- [x] Configure Skaffold with infra-local dependency
+- [x] Configure Dapr components
+- [x] Initialize dependencies
 
 ### Tasks
 
@@ -271,7 +271,7 @@ ENTRYPOINT ["/app"]
 #### 1.6 Skaffold Configuration
 **File:** `skaffold.yaml`
 
-The profile service depends on infrastructure from `mathtrail-infra-local` (PostgreSQL, Redis, Kafka, Strimzi). Skaffold's `requires` field references the infra config so that `skaffold dev` brings up everything.
+The profile service depends on infrastructure from `mathtrail-infra-local` (PostgreSQL, Redis, Kafka, Strimzi) and testing infrastructure from `mathtrail-infra-testing` (Grafana k6 operator). Skaffold's `requires` field references both configs so that `skaffold dev` brings up everything.
 
 ```yaml
 apiVersion: skaffold/v4beta12
@@ -281,6 +281,7 @@ metadata:
 
 requires:
   - path: ../mathtrail-infra-local
+  - path: ../mathtrail-infra-testing
 
 build:
   artifacts:
@@ -336,10 +337,10 @@ just docker-build           # Build Docker image locally
 ## Stage 2: Database Schema & Models
 
 ### Objectives
-- [ ] Define PostgreSQL schema
-- [ ] Create SQL migration files
-- [ ] Define GORM data models
-- [ ] Implement repository layer with interfaces
+- [x] Define PostgreSQL schema
+- [x] Create SQL migration files
+- [x] Define GORM data models
+- [x] Implement repository layer with interfaces
 
 ### Tasks
 
@@ -571,10 +572,10 @@ func (c *Container) Close() {
 ## Stage 3: Core API Implementation
 
 ### Objectives
-- [ ] Implement GET /profile/{userId} endpoint
-- [ ] Add request validation
-- [ ] Implement error handling
-- [ ] Add Swagger/OpenAPI documentation
+- [x] Implement GET /profile/{userId} endpoint
+- [x] Add request validation
+- [x] Implement error handling
+- [x] Add Swagger/OpenAPI documentation
 
 ### Tasks
 
@@ -1315,26 +1316,26 @@ Update main `README.md` with:
 ## Summary Checklist
 
 ### Stage 1: Project Setup
-- [ ] DevContainer created with Go, Skaffold, kubectl, Helm, Dapr CLI, Delve
-- [ ] Go project structure created
-- [ ] Dependencies installed
-- [ ] Skaffold config with mathtrail-infra-local dependency
-- [ ] Configuration system implemented
+- [x] DevContainer created with Go, Skaffold, kubectl, Helm, Dapr CLI, Delve
+- [x] Go project structure created
+- [x] Dependencies installed
+- [x] Skaffold config with mathtrail-infra-local dependency
+- [x] Configuration system implemented
 
 ### Stage 2: Database
-- [ ] SQL migration file created (`migrations/001_init.sql`)
-- [ ] GORM data models defined (`internal/profile/model.go`)
-- [ ] Repository interface + implementation (`internal/profile/repository.go`)
-- [ ] Database connection (`internal/database/database.go`)
-- [ ] DI container wiring (`internal/app/container.go`)
+- [x] SQL migration file created (`migrations/001_init.sql`)
+- [x] GORM data models defined (`internal/profile/model.go`)
+- [x] Repository interface + implementation (`internal/profile/repository.go`)
+- [x] Database connection (`internal/database/database.go`)
+- [x] DI container wiring (`internal/app/container.go`)
 
 ### Stage 3: API
-- [ ] GET /profile/{userId} endpoint implemented
-- [ ] Redis cache-aside pattern for profile reads
-- [ ] Cache invalidation on profile create/update
-- [ ] Error handling in place
-- [ ] Request validation implemented
-- [ ] Swagger documentation added
+- [x] GET /profile/{userId} endpoint implemented
+- [x] Redis cache-aside pattern for profile reads
+- [x] Cache invalidation on profile create/update
+- [x] Error handling in place
+- [x] Request validation implemented
+- [x] Swagger documentation added
 
 ### Stage 4: Events
 - [ ] Dapr components configured

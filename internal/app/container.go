@@ -1,0 +1,88 @@
+package app
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+
+	"github.com/mathtrail/mathtrail-profile/internal/cache"
+	"github.com/mathtrail/mathtrail-profile/internal/config"
+	"github.com/mathtrail/mathtrail-profile/internal/database"
+	"github.com/mathtrail/mathtrail-profile/internal/profile"
+)
+
+// Container holds all application dependencies wired together.
+type Container struct {
+	DB                *gorm.DB
+	ProfileRepository profile.Repository
+	ProfileService    profile.Service
+	ProfileController *profile.Controller
+}
+
+// NewContainer initializes all dependencies and returns the DI container.
+func NewContainer(cfg *config.Config) *Container {
+	// Database
+	db := database.NewConnection(cfg)
+
+	// Redis
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+	redisCache := cache.NewProfileCache(rdb, time.Duration(cfg.CacheTTLSeconds)*time.Second, nil)
+	profileCache := &profileCacheAdapter{cache: redisCache}
+
+	// Profile domain
+	profileRepo := profile.NewRepository(db)
+	profileService := profile.NewService(profileRepo, profileCache)
+	profileController := profile.NewController(profileService)
+
+	return &Container{
+		DB:                db,
+		ProfileRepository: profileRepo,
+		ProfileService:    profileService,
+		ProfileController: profileController,
+	}
+}
+
+// Close releases resources held by the container.
+func (c *Container) Close() {
+	sqlDB, _ := c.DB.DB()
+	sqlDB.Close()
+}
+
+// profileCacheAdapter bridges cache.ProfileCache (no profile import) with profile.Cache interface.
+type profileCacheAdapter struct {
+	cache *cache.ProfileCache
+}
+
+func (a *profileCacheAdapter) Get(ctx context.Context, userID string) (*profile.Profile, error) {
+	data, err := a.cache.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, nil
+	}
+	var p profile.Profile
+	if err := json.Unmarshal(data, &p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (a *profileCacheAdapter) Set(ctx context.Context, userID string, p *profile.Profile) error {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return a.cache.Set(ctx, userID, data)
+}
+
+func (a *profileCacheAdapter) Invalidate(ctx context.Context, userID string) error {
+	return a.cache.Invalidate(ctx, userID)
+}

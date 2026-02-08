@@ -1,0 +1,127 @@
+basePath: /api/v1
+definitions:
+  internal_profile.ErrorResponse:
+    properties:
+      code:
+        example: PROFILE_NOT_FOUND
+        type: string
+      details:
+        example: 'profile not found: kratos-user-123'
+        type: string
+      message:
+        example: profile not found
+        type: string
+    type: object
+  internal_profile.Profile:
+    properties:
+      age:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      progress:
+        $ref: '#/definitions/internal_profile.Progress'
+      skills:
+        items:
+          $ref: '#/definitions/internal_profile.Skill'
+        type: array
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  internal_profile.Progress:
+    properties:
+      created_at:
+        type: string
+      current_streak:
+        type: integer
+      id:
+        type: string
+      profile_id:
+        type: string
+      tasks_completed:
+        type: integer
+      total_points:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_profile.Skill:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      level:
+        type: integer
+      proficiency:
+        type: number
+      profile_id:
+        type: string
+      skill_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Profile service for the MathTrail ecosystem. Manages user profiles,
+    skills, and progress.
+  title: MathTrail Profile Service API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns service health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /profile/{userId}:
+    get:
+      description: Retrieve complete user profile including skills and progress by
+        user ID
+      parameters:
+      - description: User ID from Kratos
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          schema:
+            $ref: '#/definitions/internal_profile.Profile'
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/internal_profile.ErrorResponse'
+        "404":
+          description: Profile not found
+          schema:
+            $ref: '#/definitions/internal_profile.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/internal_profile.ErrorResponse'
+      summary: Get user profile
+      tags:
+      - profiles
+schemes:
+- http
+swagger: "2.0"

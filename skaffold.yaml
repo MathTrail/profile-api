@@ -1,0 +1,29 @@
+apiVersion: skaffold/v4beta12
+kind: Config
+metadata:
+  name: mathtrail-profile
+
+requires:
+  - path: ../mathtrail-infra-local
+  - path: ../mathtrail-infra-testing
+
+build:
+  artifacts:
+    - image: mathtrail-profile
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false
+
+deploy:
+  helm:
+    releases:
+      - name: mathtrail-profile
+        chartPath: helm/mathtrail-profile
+        namespace: mathtrail
+        createNamespace: true
+        valuesFiles:
+          - helm/mathtrail-profile/values.yaml
+        setValues:
+          image.repository: mathtrail-profile
+          image.tag: latest
