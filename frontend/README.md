@@ -1,17 +1,6 @@
 Production-Level Prompt for AI: Radial Skill Tree Microfrontend
 Project Overview
-Generate a React microfrontend called "Profile" that visualizes a user’s learning progress as a Radial Hierarchical Skill Diagram (inspired by tree growth rings). The component must be self-contained, using SVG for rendering, and follow a strict microfrontend contract.
-
-Tech Stack (MANDATORY)
-Framework: React 18+ (Functional Components)
-
-Language: TypeScript (Strict Mode)
-
-Styling: Tailwind CSS
-
-UI Components: shadcn/ui (Radix-based)
-
-State: zustand
+Generate a Vite + React SPA. Do NOT use Next.js or any SSR features. Use Zustand for state management and Tailwind CSS for styling. The app must fetch data from a Go REST API. Implement the Profile Skill Tree as an SVG component based on the provided math logic.
 
 Math/Geometry: SVG Paths (NO Canvas, NO D3-chart libraries, but helper math functions are encouraged)
 
