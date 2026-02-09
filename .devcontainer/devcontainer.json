@@ -30,7 +30,8 @@
                 "redhat.vscode-yaml",
                 "eamodio.gitlens",
                 "sclu1034.justfile",
-                "Tim-Koehler.helm-intellisense"
+                "Tim-Koehler.helm-intellisense",
+                "anthropic.claude-code"
             ]
         }
     },
