@@ -3,17 +3,15 @@ kind: Config
 metadata:
   name: mathtrail-profile
 
-requires:
-  - path: ../mathtrail-infra-local
-  - path: ../mathtrail-infra-testing
-
 build:
+  local:
+    push: true
+  insecureRegistries:
+    - k3d-mathtrail-registry.localhost:5050
   artifacts:
     - image: mathtrail-profile
       docker:
         dockerfile: Dockerfile
-  local:
-    push: false
 
 deploy:
   helm:
@@ -22,8 +20,16 @@ deploy:
         chartPath: helm/mathtrail-profile
         namespace: mathtrail
         createNamespace: true
+        wait: true
         valuesFiles:
           - helm/mathtrail-profile/values.yaml
-        setValues:
-          image.repository: mathtrail-profile
-          image.tag: latest
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_mathtrail_profile}}"
+          image.tag: "{{.IMAGE_TAG_mathtrail_profile}}"
+
+portForward:
+  - resourceType: service
+    resourceName: mathtrail-profile
+    namespace: mathtrail
+    port: 8080
+    localPort: 8081
