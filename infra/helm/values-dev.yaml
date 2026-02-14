@@ -1,0 +1,32 @@
+# Dev overlay: K3s local development
+# Hardcoded credentials — acceptable for local dev only
+
+env:
+  - name: SERVER_PORT
+    value: "8080"
+  - name: DB_HOST
+    value: "postgres-postgresql"
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_USER
+    value: "postgres"
+  - name: DB_PASSWORD
+    value: "postgres"
+  - name: DB_NAME
+    value: "profile"
+  - name: DB_SSL_MODE
+    value: "disable"
+  - name: REDIS_ADDR
+    value: "redis-master:6379"
+  - name: REDIS_PASSWORD
+    value: ""
+  - name: REDIS_DB
+    value: "0"
+  - name: CACHE_TTL_SECONDS
+    value: "300"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: TOPIC_USER_REGISTERED
+    value: "user-registered"
+  - name: TOPIC_TASK_SOLVED
+    value: "task-solved"

@@ -1,0 +1,36 @@
+apiVersion: skaffold/v4beta12
+kind: Config
+metadata:
+  name: mathtrail-profile
+
+build:
+  local:
+    push: true
+  insecureRegistries:
+    - k3d-mathtrail-registry.localhost:5050
+  artifacts:
+    - image: profile-api
+      docker:
+        dockerfile: Dockerfile
+
+deploy:
+  helm:
+    releases:
+      - name: mathtrail-profile
+        chartPath: infra/helm/mathtrail-profile
+        namespace: mathtrail
+        createNamespace: true
+        wait: true
+        valuesFiles:
+          - infra/helm/mathtrail-profile/values.yaml
+          - infra/helm/values-dev.yaml
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_mathtrail_profile}}"
+          image.tag: "{{.IMAGE_TAG_mathtrail_profile}}"
+
+portForward:
+  - resourceType: service
+    resourceName: mathtrail-profile
+    namespace: mathtrail
+    port: 8080
+    localPort: 8081

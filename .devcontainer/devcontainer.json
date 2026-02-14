@@ -1,0 +1,40 @@
+{
+    "name": "MathTrail Profile DevContainer",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.2.2": {
+            "helm": "3.14.0",
+            "version": "1.31.0",
+            "minikube": "none"
+        },
+        "ghcr.io/eitsupi/devcontainer-features/just:0.1.1": {},
+        "ghcr.io/dapr/cli/dapr-cli:0": {}
+    },
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/home/vscode/.kube,type=bind,consistency=cached"
+    ],
+    "remoteEnv": {
+        "KUBECONFIG": "/home/vscode/.kube/k3d-mathtrail-dev.yaml"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "ms-azuretools.vscode-docker",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "ms-kubernetes.helm",
+                "redhat.vscode-yaml",
+                "eamodio.gitlens",
+                "sclu1034.justfile",
+                "Tim-Koehler.helm-intellisense",
+                "anthropic.claude-code"
+            ]
+        }
+    },
+    "postStartCommand": "bash .devcontainer/post-start.sh",
+    "forwardPorts": [8080]
+}
