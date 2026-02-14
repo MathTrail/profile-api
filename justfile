@@ -1,4 +1,4 @@
-# MathTrail Profile Service
+﻿# MathTrail Profile Service
 
 set shell := ["bash", "-c"]
 
@@ -100,11 +100,11 @@ release-chart:
 
     CHARTS_REPO="/tmp/mathtrail-charts-repo"
     rm -rf "$CHARTS_REPO"
-    git clone git@github.com:RyazanovAlexander/mathtrail-charts.git "$CHARTS_REPO"
+    git clone git@github.com:MathTrail/mathtrail-charts.git "$CHARTS_REPO"
     cp /tmp/mathtrail-charts/{{ CHART_NAME }}-*.tgz "$CHARTS_REPO/charts/"
     cd "$CHARTS_REPO"
     helm repo index ./charts \
-        --url https://RyazanovAlexander.github.io/mathtrail-charts/charts
+        --url https://MathTrail.github.io/mathtrail-charts/charts
     git add charts/
     git commit -m "chore: release {{ CHART_NAME }} v${VERSION}"
     git push
