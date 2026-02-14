@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/mathtrail/mathtrail-profile/internal/profile"
+	"github.com/MathTrail/profile-api/internal/profile"
 )
 
 // EventHandler handles Dapr pub/sub events and translates them into profile operations.

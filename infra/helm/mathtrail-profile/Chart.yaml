@@ -5,4 +5,4 @@ description: MathTrail Profile Service chart
 dependencies:
   - name: mathtrail-service-lib
     version: "0.1.0"
-    repository: "https://MathTrail.github.io/mathtrail-charts/charts"
+    repository: "https://MathTrail.github.io/charts/charts"

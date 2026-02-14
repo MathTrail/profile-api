@@ -10,12 +10,12 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/mathtrail/mathtrail-profile/internal/cache"
-	"github.com/mathtrail/mathtrail-profile/internal/config"
-	"github.com/mathtrail/mathtrail-profile/internal/dapr"
-	"github.com/mathtrail/mathtrail-profile/internal/database"
-	"github.com/mathtrail/mathtrail-profile/internal/logging"
-	"github.com/mathtrail/mathtrail-profile/internal/profile"
+	"github.com/MathTrail/profile-api/internal/cache"
+	"github.com/MathTrail/profile-api/internal/config"
+	"github.com/MathTrail/profile-api/internal/dapr"
+	"github.com/MathTrail/profile-api/internal/database"
+	"github.com/MathTrail/profile-api/internal/logging"
+	"github.com/MathTrail/profile-api/internal/profile"
 )
 
 // Container holds all application dependencies wired together.

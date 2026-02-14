@@ -9,8 +9,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 
-	"github.com/mathtrail/mathtrail-profile/internal/dapr"
-	"github.com/mathtrail/mathtrail-profile/internal/profile"
+	"github.com/MathTrail/profile-api/internal/dapr"
+	"github.com/MathTrail/profile-api/internal/profile"
 )
 
 // ReadinessChecker is called by the readiness probe to verify downstream dependencies.

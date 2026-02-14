@@ -9,7 +9,7 @@ build:
   insecureRegistries:
     - k3d-mathtrail-registry.localhost:5050
   artifacts:
-    - image: mathtrail-profile
+    - image: profile-api
       docker:
         dockerfile: Dockerfile
 

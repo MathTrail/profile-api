@@ -208,7 +208,7 @@ mathtrail-profile/
 
 #### 1.3 Go Module Initialization
 ```bash
-go mod init github.com/mathtrail/mathtrail-profile
+go mod init github.com/MathTrail/profile-api
 # Web Framework
 go get github.com/gin-gonic/gin
 # ORM & Database
@@ -285,7 +285,7 @@ requires:
 
 build:
   artifacts:
-    - image: mathtrail-profile
+    - image: profile-api
       docker:
         dockerfile: Dockerfile
   local:
@@ -497,7 +497,7 @@ import (
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
 
-    "github.com/mathtrail/mathtrail-profile/internal/config"
+    "github.com/MathTrail/profile-api/internal/config"
 )
 
 func NewConnection(cfg *config.Config) *gorm.DB {
@@ -527,10 +527,10 @@ import (
     "github.com/redis/go-redis/v9"
     "gorm.io/gorm"
 
-    "github.com/mathtrail/mathtrail-profile/internal/cache"
-    "github.com/mathtrail/mathtrail-profile/internal/config"
-    "github.com/mathtrail/mathtrail-profile/internal/database"
-    "github.com/mathtrail/mathtrail-profile/internal/profile"
+    "github.com/MathTrail/profile-api/internal/cache"
+    "github.com/MathTrail/profile-api/internal/config"
+    "github.com/MathTrail/profile-api/internal/database"
+    "github.com/MathTrail/profile-api/internal/profile"
 )
 
 type Container struct {
@@ -702,7 +702,7 @@ import (
     "github.com/google/uuid"
     "go.uber.org/zap"
 
-    "github.com/mathtrail/mathtrail-profile/internal/cache"
+    "github.com/MathTrail/profile-api/internal/cache"
 )
 
 type Service interface {
@@ -777,7 +777,7 @@ package server
 import (
     "github.com/gin-gonic/gin"
 
-    "github.com/mathtrail/mathtrail-profile/internal/profile"
+    "github.com/MathTrail/profile-api/internal/profile"
 )
 
 func NewRouter(profileController *profile.Controller) *gin.Engine {
@@ -939,9 +939,9 @@ import (
     "fmt"
     "log"
 
-    "github.com/mathtrail/mathtrail-profile/internal/app"
-    "github.com/mathtrail/mathtrail-profile/internal/config"
-    "github.com/mathtrail/mathtrail-profile/internal/server"
+    "github.com/MathTrail/profile-api/internal/app"
+    "github.com/MathTrail/profile-api/internal/config"
+    "github.com/MathTrail/profile-api/internal/server"
 )
 
 func main() {

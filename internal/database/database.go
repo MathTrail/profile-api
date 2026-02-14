@@ -5,8 +5,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/mathtrail/mathtrail-profile/internal/config"
-	"github.com/mathtrail/mathtrail-profile/internal/logging"
+	"github.com/MathTrail/profile-api/internal/config"
+	"github.com/MathTrail/profile-api/internal/logging"
 )
 
 // NewConnection opens a GORM PostgreSQL connection using the provided config.

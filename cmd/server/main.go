@@ -10,12 +10,12 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/mathtrail/mathtrail-profile/internal/app"
-	"github.com/mathtrail/mathtrail-profile/internal/config"
-	"github.com/mathtrail/mathtrail-profile/internal/server"
+	"github.com/MathTrail/profile-api/internal/app"
+	"github.com/MathTrail/profile-api/internal/config"
+	"github.com/MathTrail/profile-api/internal/server"
 
 	// Import generated Swagger docs (will be created by swag init)
-	_ "github.com/mathtrail/mathtrail-profile/docs"
+	_ "github.com/MathTrail/profile-api/docs"
 )
 
 // @title MathTrail Profile Service API

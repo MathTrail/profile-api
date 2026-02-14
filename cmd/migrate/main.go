@@ -6,9 +6,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/mathtrail/mathtrail-profile/internal/config"
-	"github.com/mathtrail/mathtrail-profile/internal/database"
-	"github.com/mathtrail/mathtrail-profile/internal/logging"
+	"github.com/MathTrail/profile-api/internal/config"
+	"github.com/MathTrail/profile-api/internal/database"
+	"github.com/MathTrail/profile-api/internal/logging"
 )
 
 // migrate applies SQL migration files against the PostgreSQL database.

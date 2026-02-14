@@ -1,4 +1,4 @@
-module github.com/mathtrail/mathtrail-profile
+module github.com/MathTrail/profile-api
 
 go 1.25.7
 
