@@ -17,12 +17,13 @@ deploy:
   helm:
     releases:
       - name: mathtrail-profile
-        chartPath: helm/mathtrail-profile
+        chartPath: infra/helm/mathtrail-profile
         namespace: mathtrail
         createNamespace: true
         wait: true
         valuesFiles:
-          - helm/mathtrail-profile/values.yaml
+          - infra/helm/mathtrail-profile/values.yaml
+          - infra/helm/values-dev.yaml
         setValueTemplates:
           image.repository: "{{.IMAGE_REPO_mathtrail_profile}}"
           image.tag: "{{.IMAGE_TAG_mathtrail_profile}}"

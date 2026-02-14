@@ -1,0 +1,55 @@
+# Cloud overlay: managed Kubernetes + RDS
+# Secrets via Vault + ESO, managed database endpoints
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+externalSecrets:
+  enabled: true
+  vaultPath: "secret/data/cloud/mathtrail-profile"
+  keys:
+    - secretKey: DB_PASSWORD
+      remoteKey: db-password
+    - secretKey: REDIS_PASSWORD
+      remoteKey: redis-password
+
+env:
+  - name: SERVER_PORT
+    value: "8080"
+  - name: DB_HOST
+    value: ""  # Set via Terraform output
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_USER
+    value: "mathtrail-profile"
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-secrets
+        key: DB_PASSWORD
+  - name: DB_NAME
+    value: "profile"
+  - name: DB_SSL_MODE
+    value: "require"
+  - name: REDIS_ADDR
+    value: ""  # Set via Terraform output
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-secrets
+        key: REDIS_PASSWORD
+  - name: REDIS_DB
+    value: "0"
+  - name: CACHE_TTL_SECONDS
+    value: "300"
+  - name: LOG_LEVEL
+    value: "warn"
+  - name: TOPIC_USER_REGISTERED
+    value: "user-registered"
+  - name: TOPIC_TASK_SOLVED
+    value: "task-solved"

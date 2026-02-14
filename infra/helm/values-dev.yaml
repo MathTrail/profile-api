@@ -1,27 +1,5 @@
-replicaCount: 1
-
-image:
-  repository: mathtrail-profile
-  tag: latest
-
-service:
-  port: 8080
-
-dapr:
-  enabled: true
-  appId: "mathtrail-profile"
-
-resources:
-  requests:
-    cpu: "100m"
-    memory: "128Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"
-
-migration:
-  enabled: true
-  command: ["/migrate"]
+# Dev overlay: K3s local development
+# Hardcoded credentials — acceptable for local dev only
 
 env:
   - name: SERVER_PORT

@@ -1,0 +1,2 @@
+# On-prem environment — no variables needed for k8s mode
+# Database runs in-cluster via shared PostgreSQL
