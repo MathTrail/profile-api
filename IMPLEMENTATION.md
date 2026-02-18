@@ -274,7 +274,7 @@ ENTRYPOINT ["/app"]
 The profile service depends on infrastructure from `mathtrail-infra-local` (PostgreSQL, Redis, Kafka, Strimzi) and testing infrastructure from `mathtrail-infra-testing` (Grafana k6 operator). Skaffold's `requires` field references both configs so that `skaffold dev` brings up everything.
 
 ```yaml
-apiVersion: skaffold/v4beta12
+apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
   name: mathtrail-profile
