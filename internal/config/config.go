@@ -42,8 +42,8 @@ func Load() *Config {
 	return &Config{
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 
-		DBHost:     getEnv("DB_HOST", "postgres-postgresql"),
-		DBPort:     getEnv("DB_PORT", "5432"),
+		DBHost:     getEnv("DB_HOST", "postgres-pgbouncer"),
+		DBPort:     getEnv("DB_PORT", "6432"),
 		DBUser:     getEnv("DB_USER", "postgres"),
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "profile"),

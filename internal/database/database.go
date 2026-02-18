@@ -14,7 +14,10 @@ import (
 func NewConnection(cfg *config.Config, logger *zap.Logger) *gorm.DB {
 	gormLogger := logging.NewGormLogger(logger)
 
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  cfg.DSN(),
+		PreferSimpleProtocol: true, // disables implicit prepared statements; required for PgBouncer transaction mode
+	}), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
