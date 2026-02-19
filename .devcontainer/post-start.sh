@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Create skaffold.env symlink so Skaffold picks up shared variables
+ln -sf "$HOME/.env.shared" "$PWD/skaffold.env"
+
 mkdir -p /home/vscode/.kube
 chmod 700 /home/vscode/.kube 2>/dev/null || true
 
