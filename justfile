@@ -1,6 +1,8 @@
 ﻿# MathTrail Profile Service
 
 set shell := ["bash", "-c"]
+set dotenv-load := true
+set dotenv-path := env("HOME") + "/.env.shared"
 
 NAMESPACE := "mathtrail"
 SERVICE := "mathtrail-profile"
@@ -122,13 +124,13 @@ release-chart:
     echo "Packaging {{ CHART_NAME }} v${VERSION}..."
     helm package "$CHART_DIR" --destination /tmp/mathtrail-charts
 
-    CHARTS_REPO="/tmp/mathtrail-charts-repo"
-    rm -rf "$CHARTS_REPO"
-    git clone git@github.com:MathTrail/charts.git "$CHARTS_REPO"
-    cp /tmp/mathtrail-charts/{{ CHART_NAME }}-*.tgz "$CHARTS_REPO/charts/"
-    cd "$CHARTS_REPO"
+    CHARTS_REPO_DIR="/tmp/mathtrail-charts-repo"
+    rm -rf "$CHARTS_REPO_DIR"
+    git clone git@github.com:MathTrail/charts.git "$CHARTS_REPO_DIR"
+    cp /tmp/mathtrail-charts/{{ CHART_NAME }}-*.tgz "$CHARTS_REPO_DIR/charts/"
+    cd "$CHARTS_REPO_DIR"
     helm repo index ./charts \
-        --url https://MathTrail.github.io/charts/charts
+        --url ${CHARTS_REPO}
     git add charts/
     git commit -m "chore: release {{ CHART_NAME }} v${VERSION}"
     git push
