@@ -4,7 +4,7 @@ set shell := ["bash", "-c"]
 set dotenv-load := true
 set dotenv-path := env("HOME") + "/.env.shared"
 
-NAMESPACE := "mathtrail"
+NAMESPACE := env_var("NAMESPACE")
 SERVICE := "mathtrail-profile"
 CHART_NAME := "mathtrail-profile"
 
