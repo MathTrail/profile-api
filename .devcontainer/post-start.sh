@@ -1,18 +1,27 @@
 #!/bin/bash
 set -e
 
-# Create skaffold.env symlink so Skaffold picks up shared variables
-ln -sf "$HOME/.env.shared" "$PWD/skaffold.env"
+# Load platform environment
+set -a; source /etc/mathtrail/platform.env; set +a
 
+# Set up skaffold.env
+ln -sf /etc/mathtrail/platform.env "$PWD/skaffold.env"
+
+# Set up kubeconfig from host bind mount (mount is root-owned, hence sudo)
 mkdir -p /home/vscode/.kube
-chmod 700 /home/vscode/.kube 2>/dev/null || true
+KUBECONFIG_SRC="/home/vscode/.kube-host/${CLUSTER_NAME}.yaml"
+
+if sudo test -f "$KUBECONFIG_SRC"; then
+    sudo install -o vscode -g vscode -m 600 "$KUBECONFIG_SRC" /home/vscode/.kube/config
+    echo "Kubeconfig ready"
+else
+    echo "Warning: kubeconfig not found at $KUBECONFIG_SRC"
+    echo "Run 'just kubeconfig' in infra-local-k3s on host first"
+fi
 
 # Download Go dependencies
 go mod download
 
-echo "Checking cluster connection..."
-if kubectl cluster-info 2>/dev/null; then
-    echo "✅ Connected to K3d cluster"
-else
-    echo "⚠️  Cluster not accessible. Run 'just create' in mathtrail-infra-local-k3s first"
-fi
+# Verify cluster connection
+kubectl cluster-info 2>/dev/null && echo "Connected to cluster" \
+    || echo "Cluster not accessible — check that k3d is running on host"
