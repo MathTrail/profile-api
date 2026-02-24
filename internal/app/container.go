@@ -16,6 +16,7 @@ import (
 	"github.com/MathTrail/profile-api/internal/database"
 	"github.com/MathTrail/profile-api/internal/logging"
 	"github.com/MathTrail/profile-api/internal/profile"
+	"github.com/MathTrail/profile-api/internal/secrets"
 )
 
 // Container holds all application dependencies wired together.
@@ -34,13 +35,30 @@ func NewContainer(cfg *config.Config) *Container {
 	// Logger
 	logger := logging.NewLogger(cfg.LogLevel)
 
+	ctx := context.Background()
+	daprAddr := cfg.DaprAddr()
+
+	// Fetch dynamic DB credentials from Dapr secret store.
+	// Retries up to 10 times with linear backoff to handle sidecar startup race.
+	dbCreds, err := secrets.GetDaprSecretWithRetry(ctx, daprAddr, cfg.DBSecretStore, cfg.DBSecretKey, 10)
+	if err != nil {
+		logger.Fatal("failed to fetch DB credentials from dapr secret store", zap.Error(err))
+	}
+	dbDSN := fmt.Sprintf("%s user=%s password=%s", cfg.PgDSNTemplate(), dbCreds["username"], dbCreds["password"])
+
+	// Fetch static secrets (Redis password) from Dapr KV secret store.
+	kvSecrets, err := secrets.GetDaprSecretWithRetry(ctx, daprAddr, cfg.KVSecretStore, cfg.KVSecretKey, 10)
+	if err != nil {
+		logger.Fatal("failed to fetch KV secrets from dapr secret store", zap.Error(err))
+	}
+
 	// Database
-	db := database.NewConnection(cfg, logger)
+	db := database.NewConnection(dbDSN, logger)
 
 	// Redis
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
+		Password: kvSecrets["redis-password"],
 		DB:       cfg.RedisDB,
 	})
 	redisCache := cache.NewProfileCache(rdb, time.Duration(cfg.CacheTTLSeconds)*time.Second, logger.Named("cache"))

@@ -10,25 +10,32 @@ type Config struct {
 	// Server
 	ServerPort string
 
-	// Database
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
+	// PostgreSQL connection (non-sensitive; credentials fetched from Dapr secret store)
+	DBHost    string
+	DBPort    string
+	DBName    string
+	DBSSLMode string
 
-	// Redis
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
+	// Redis connection (non-sensitive; password fetched from Dapr secret store)
+	RedisAddr string
+	RedisDB   int
 
 	// Cache
 	CacheTTLSeconds int
 
-	// Dapr
-	DaprHost string
-	DaprPort string
+	// Dapr sidecar
+	DaprHost     string
+	DaprHTTPPort string // Dapr sidecar HTTP port (for secrets API and service invocation)
+
+	// Dapr Secret Store config
+	// DBSecretStore is the Dapr component name for the database credential store, e.g. "vault-db".
+	DBSecretStore string
+	// DBSecretKey is the secret path for dynamic DB credentials, e.g. "creds/profile-api-role".
+	DBSecretKey string
+	// KVSecretStore is the Dapr component name for the KV secret store, e.g. "vault".
+	KVSecretStore string
+	// KVSecretKey is the secret path for static secrets, e.g. "local/mathtrail-profile".
+	KVSecretKey string
 
 	// Logging
 	LogLevel string
@@ -42,21 +49,23 @@ func Load() *Config {
 	return &Config{
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 
-		DBHost:     getEnv("DB_HOST", "postgres-pgbouncer"),
-		DBPort:     getEnv("DB_PORT", "6432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "profile"),
-		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		DBHost:    getEnv("PG_HOST", "postgres-pgbouncer"),
+		DBPort:    getEnv("PG_PORT", "6432"),
+		DBName:    getEnv("PG_DATABASE", "profile"),
+		DBSSLMode: getEnv("PG_SSL_MODE", "disable"),
 
-		RedisAddr:     getEnv("REDIS_ADDR", "redis-master:6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
-		RedisDB:       getEnvInt("REDIS_DB", 0),
+		RedisAddr: getEnv("REDIS_ADDR", "redis-master:6379"),
+		RedisDB:   getEnvInt("REDIS_DB", 0),
 
 		CacheTTLSeconds: getEnvInt("CACHE_TTL_SECONDS", 300),
 
-		DaprHost: getEnv("DAPR_HOST", "localhost"),
-		DaprPort: getEnv("DAPR_PORT", "3500"),
+		DaprHost:     getEnv("DAPR_HOST", "localhost"),
+		DaprHTTPPort: getEnv("DAPR_HTTP_PORT", "3500"),
+
+		DBSecretStore: getEnv("DB_SECRET_STORE", "vault-db"),
+		DBSecretKey:   getEnv("DB_SECRET_KEY", "creds/profile-api-role"),
+		KVSecretStore: getEnv("KV_SECRET_STORE", "vault"),
+		KVSecretKey:   getEnv("KV_SECRET_KEY", "local/mathtrail-profile"),
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 
@@ -65,10 +74,17 @@ func Load() *Config {
 	}
 }
 
-func (c *Config) DSN() string {
+// DaprAddr returns the Dapr sidecar HTTP API address (host:port).
+func (c *Config) DaprAddr() string {
+	return fmt.Sprintf("%s:%s", c.DaprHost, c.DaprHTTPPort)
+}
+
+// PgDSNTemplate returns a libpq connection string without user/password.
+// Credentials are appended at runtime after being fetched from Dapr secret store.
+func (c *Config) PgDSNTemplate() string {
 	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode,
+		"host=%s port=%s dbname=%s sslmode=%s",
+		c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
 	)
 }
 

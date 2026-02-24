@@ -33,3 +33,10 @@ rollout:
   strategy: ""
   steps: []
   autoPromotionEnabled: true
+
+# Vault Database Config Job — creates DB connection + dynamic role in Vault.
+vaultDbConfig:
+  enabled: false
+  connectionName: "profile-postgres"
+  pgDatabase: "profile"
+  roleName: "profile-api-role"

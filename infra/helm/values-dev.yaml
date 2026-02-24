@@ -1,25 +1,19 @@
 # Dev overlay: K3s local development
-# Hardcoded credentials — acceptable for local dev only
+# DB credentials and Redis password come from Vault via the Dapr sidecar HTTP API.
+# Credentials never touch etcd — no ESO ExternalSecrets for this service.
 
 env:
   - name: SERVER_PORT
     value: "8080"
-  - name: DB_HOST
-    value: "postgres-postgresql"
-  - name: DB_PORT
-    value: "5432"
-  - name: DB_USER
-    value: "postgres"
-  - name: DB_PASSWORD
-    value: "postgres"
-  - name: DB_NAME
+  # Non-sensitive connection params (host/port/dbname are not secrets)
+  - name: PG_HOST
+    value: "postgres-pgbouncer"
+  - name: PG_PORT
+    value: "6432"
+  - name: PG_DATABASE
     value: "profile"
-  - name: DB_SSL_MODE
-    value: "disable"
   - name: REDIS_ADDR
     value: "redis-master:6379"
-  - name: REDIS_PASSWORD
-    value: ""
   - name: REDIS_DB
     value: "0"
   - name: CACHE_TTL_SECONDS
@@ -30,3 +24,41 @@ env:
     value: "user-registered"
   - name: TOPIC_TASK_SOLVED
     value: "task-solved"
+  # Dapr secret store config
+  - name: DB_SECRET_STORE
+    value: "vault-db"
+  - name: DB_SECRET_KEY
+    value: "creds/profile-api-role"
+  - name: KV_SECRET_STORE
+    value: "vault"
+  - name: KV_SECRET_KEY
+    value: "local/mathtrail-profile"
+
+# The migration Job needs a direct DB connection with DDL privileges (superuser).
+# Uses the Bitnami postgres-postgresql K8s Secret — NOT through Vault/Dapr.
+migration:
+  env:
+    - name: DB_HOST
+      value: "postgres-postgresql"
+    - name: DB_PORT
+      value: "5432"
+    - name: DB_USER
+      value: "postgres"
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-postgresql
+          key: postgres-password
+    - name: DB_NAME
+      value: "profile"
+    - name: DB_SSL_MODE
+      value: "disable"
+
+# ESO ExternalSecret for dynamic DB creds is disabled.
+# The app fetches credentials via Dapr HTTP API at startup.
+dbDynamicSecret:
+  enabled: false
+
+# vault-db-config Job still runs to configure the Vault database engine (idempotent).
+vaultDbConfig:
+  enabled: true
