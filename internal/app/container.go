@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -12,11 +13,10 @@ import (
 
 	"github.com/MathTrail/profile-api/internal/cache"
 	"github.com/MathTrail/profile-api/internal/config"
-	"github.com/MathTrail/profile-api/internal/dapr"
 	"github.com/MathTrail/profile-api/internal/database"
+	kafkaconsumer "github.com/MathTrail/profile-api/internal/kafka"
 	"github.com/MathTrail/profile-api/internal/logging"
 	"github.com/MathTrail/profile-api/internal/profile"
-	"github.com/MathTrail/profile-api/internal/secrets"
 )
 
 // Container holds all application dependencies wired together.
@@ -27,38 +27,20 @@ type Container struct {
 	ProfileRepository profile.Repository
 	ProfileService    profile.Service
 	ProfileController *profile.Controller
-	EventHandler      *dapr.EventHandler
+	Consumers         []*kafkaconsumer.Consumer
 }
 
 // NewContainer initializes all dependencies and returns the DI container.
 func NewContainer(cfg *config.Config) *Container {
-	// Logger
 	logger := logging.NewLogger(cfg.LogLevel)
 
-	ctx := context.Background()
-	daprAddr := cfg.DaprAddr()
+	// Database; credentials injected by VSO via mathtrail-profile-db-secret K8s Secret.
+	db := database.NewConnection(cfg.PgDSN(), logger)
 
-	// Fetch dynamic DB credentials from Dapr secret store.
-	// Retries up to 10 times with linear backoff to handle sidecar startup race.
-	dbCreds, err := secrets.GetDaprSecretWithRetry(ctx, daprAddr, cfg.DBSecretStore, cfg.DBSecretKey, 10)
-	if err != nil {
-		logger.Fatal("failed to fetch DB credentials from dapr secret store", zap.Error(err))
-	}
-	dbDSN := fmt.Sprintf("%s user=%s password=%s", cfg.PgDSNTemplate(), dbCreds["username"], dbCreds["password"])
-
-	// Fetch static secrets (Redis password) from Dapr KV secret store.
-	kvSecrets, err := secrets.GetDaprSecretWithRetry(ctx, daprAddr, cfg.KVSecretStore, cfg.KVSecretKey, 10)
-	if err != nil {
-		logger.Fatal("failed to fetch KV secrets from dapr secret store", zap.Error(err))
-	}
-
-	// Database
-	db := database.NewConnection(dbDSN, logger)
-
-	// Redis
+	// Redis; password injected by ESO via mathtrail-profile-secrets K8s Secret.
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
-		Password: kvSecrets["redis-password"],
+		Password: cfg.RedisPassword,
 		DB:       cfg.RedisDB,
 	})
 	redisCache := cache.NewProfileCache(rdb, time.Duration(cfg.CacheTTLSeconds)*time.Second, logger.Named("cache"))
@@ -69,14 +51,20 @@ func NewContainer(cfg *config.Config) *Container {
 	profileService := profile.NewService(profileRepo, profileCache, logger.Named("profile"))
 	profileController := profile.NewController(profileService)
 
-	// Dapr event handler
-	eventHandler := dapr.NewEventHandler(
-		profileService,
-		logger,
-		"pubsub",
-		cfg.TopicUserRegistered,
-		cfg.TopicTaskSolved,
-	)
+	// Kafka consumers for event-driven updates
+	brokers := strings.Split(cfg.KafkaBrokers, ",")
+	consumers := []*kafkaconsumer.Consumer{
+		kafkaconsumer.NewConsumer(
+			brokers, cfg.TopicUserRegistered, cfg.KafkaConsumerGroup,
+			kafkaconsumer.HandleUserRegistered(profileService, logger.Named("kafka.user-registered")),
+			logger.Named("kafka.user-registered"),
+		),
+		kafkaconsumer.NewConsumer(
+			brokers, cfg.TopicTaskSolved, cfg.KafkaConsumerGroup,
+			kafkaconsumer.HandleTaskSolved(profileService, logger.Named("kafka.task-solved")),
+			logger.Named("kafka.task-solved"),
+		),
+	}
 
 	return &Container{
 		DB:                db,
@@ -85,12 +73,15 @@ func NewContainer(cfg *config.Config) *Container {
 		ProfileRepository: profileRepo,
 		ProfileService:    profileService,
 		ProfileController: profileController,
-		EventHandler:      eventHandler,
+		Consumers:         consumers,
 	}
 }
 
 // Close releases resources held by the container.
 func (c *Container) Close() {
+	for _, consumer := range c.Consumers {
+		consumer.Close()
+	}
 	sqlDB, _ := c.DB.DB()
 	sqlDB.Close()
 	c.RedisClient.Close()

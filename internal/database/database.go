@@ -10,7 +10,7 @@ import (
 
 // NewConnection opens a GORM PostgreSQL connection using an explicit DSN.
 // The DSN must include all connection parameters including user and password.
-// Credentials should be fetched from Vault via the Dapr sidecar before calling this function.
+// Credentials should be fetched from Vault before calling this function.
 // SQL queries are logged through the zap-based GORM logger.
 func NewConnection(dsn string, logger *zap.Logger) *gorm.DB {
 	gormLogger := logging.NewGormLogger(logger)

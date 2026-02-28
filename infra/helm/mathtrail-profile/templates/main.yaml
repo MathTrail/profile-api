@@ -13,3 +13,7 @@
 {{ include "mathtrail-service-lib.service" . }}
 ---
 {{ include "mathtrail-service-lib.hpa" . }}
+---
+{{ include "mathtrail-service-lib.vaultAuth" . }}
+---
+{{ include "mathtrail-service-lib.vaultDynamicSecret" . }}

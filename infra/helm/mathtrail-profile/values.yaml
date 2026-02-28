@@ -7,10 +7,6 @@ image:
 service:
   port: 8080
 
-dapr:
-  enabled: true
-  appId: "mathtrail-profile"
-
 resources:
   requests:
     cpu: "100m"
@@ -34,9 +30,17 @@ rollout:
   steps: []
   autoPromotionEnabled: true
 
-# Vault Database Config Job — creates DB connection + dynamic role in Vault.
+# Vault Database Config Job — deprecated, replaced by VCO DatabaseSecretEngineConfig CR.
+# DB engine config is now managed centrally via infra/vault-config/profile-api/.
 vaultDbConfig:
   enabled: false
   connectionName: "profile-postgres"
   pgDatabase: "profile"
   roleName: "profile-api-role"
+
+# Vault Secrets Operator — creates and rotates the mathtrail-profile-db-secret K8s Secret.
+vso:
+  enabled: true
+  vaultRole: "profile-api"
+  dbRole: "profile-api-role"
+  secretName: "mathtrail-profile-db-secret"

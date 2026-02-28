@@ -3,7 +3,7 @@
 ## Overview
 
 User Profile service for the MathTrail platform. Manages user profiles, handles events
-(user-registered, task-solved via Dapr pub/sub), and exposes profile data via REST API.
+(user-registered, task-solved via Kafka pub/sub), and exposes profile data via REST API.
 
 **Language:** Go 1.25.7
 **Port:** 8080
@@ -19,18 +19,17 @@ User Profile service for the MathTrail platform. Manages user profiles, handles 
 | Cache | Redis (`github.com/redis/go-redis/v9`) |
 | Config | `os.LookupEnv` (no external config library) |
 | Logging | `go.uber.org/zap` |
-| Dapr | HTTP pub/sub subscriptions (sidecar calls app; no Dapr Go SDK) |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `internal/config/config.go` | Config from env vars — NO DB passwords, NO Redis password |
-| `internal/secrets/dapr.go` | Dapr HTTP API client for fetching secrets from Vault |
+| `internal/secrets/vault.go` | Vault HTTP API client for fetching secrets |
 | `internal/database/database.go` | GORM connection (accepts explicit DSN string) |
-| `internal/app/container.go` | DI container — fetches secrets via Dapr before creating connections |
+| `internal/app/container.go` | DI container — fetches secrets via Vault before creating connections |
 | `internal/profile/` | domain model, repository, service, controller |
-| `internal/dapr/subscriber.go` | Pub/sub event handlers (user-registered, task-solved) |
+| `internal/kafka/subscriber.go` | Pub/sub event handlers (user-registered, task-solved) |
 | `internal/cache/profile.go` | Redis-backed profile cache |
 | `infra/helm/mathtrail-profile/` | Helm chart (uses `mathtrail-service-lib`) |
 | `infra/helm/values-dev.yaml` | Dev environment values — no hardcoded credentials |
@@ -38,14 +37,13 @@ User Profile service for the MathTrail platform. Manages user profiles, handles 
 ## Architecture
 
 - **DB access:** GORM via PgBouncer (`postgres-pgbouncer:6432`). DSN built at startup
-  with credentials fetched from Vault via the Dapr sidecar (`vault-db` component).
+  with credentials fetched from Vault at startup.
 - **Migrations:** Direct PostgreSQL (`postgres-postgresql:5432`), using Bitnami superuser K8s Secret.
-- **Cache:** Redis with password fetched from Vault KV (`vault` component) at startup.
-- **Secrets rule:** ONLY via Dapr HTTP API (`internal/secrets/dapr.go`). No env var passwords, no ESO ExternalSecrets.
-  - DB creds: `GetDaprSecretWithRetry(ctx, daprAddr, "vault-db", "creds/profile-api-role", 10)` → `{username, password}`
-  - Redis password: `GetDaprSecretWithRetry(ctx, daprAddr, "vault", "local/mathtrail-profile", 10)` → `{redis-password}`
-- **Dapr App ID:** `mathtrail-profile`
-- **Pub/Sub:** Dapr sidecar calls app HTTP endpoints — no Dapr Go SDK needed for subscriptions.
+- **Cache:** Redis with password fetched from Vault KV at startup.
+- **Secrets rule:** ONLY via Vault HTTP API (`internal/secrets/vault.go`). No env var passwords, no ESO ExternalSecrets.
+  - DB creds: Vault Database Secrets Engine `creds/profile-api-role` → `{username, password}`
+  - Redis password: Vault KV `local/mathtrail-profile` → `{redis-password}`
+- **Pub/Sub:** Kafka consumer calls app HTTP endpoints for event handling.
 
 ## Development Workflow
 
@@ -64,7 +62,7 @@ just status      # Check pods and services
 - Handle errors explicitly — never ignore error returns
 - All comments in English
 - **Secrets rule:** Credentials are NEVER hardcoded in values files or passed as env var passwords.
-  Always fetch via `secrets.GetDaprSecretWithRetry()`.
+  Always fetch via `secrets.GetVaultSecretWithRetry()`.
 
 ## External Dependencies
 
@@ -72,14 +70,14 @@ just status      # Check pods and services
 |------|---------|
 | `mathtrail-charts` | Hosts `mathtrail-service-lib` library chart |
 | `mathtrail-infra-local-k3s` | k3d cluster setup |
-| `mathtrail-infra` | Vault + Dapr components (`vault-db`, `vault`) deployed here |
+| `mathtrail-infra` | Vault components deployed here |
 
-## Vault / Dapr Secret Paths (local dev)
+## Vault Secret Paths (local dev)
 
-| Secret | Dapr component | Vault path | Keys |
-|--------|---------------|------------|------|
-| DB creds | `vault-db` | `creds/profile-api-role` | `username`, `password` |
-| Redis password | `vault` | `local/mathtrail-profile` | `redis-password` |
+| Secret | Vault path | Keys |
+|--------|------------|------|
+| DB creds | `creds/profile-api-role` | `username`, `password` |
+| Redis password | `local/mathtrail-profile` | `redis-password` |
 
 ## Commit Convention
 

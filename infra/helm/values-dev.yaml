@@ -1,11 +1,11 @@
 # Dev overlay: K3s local development
-# DB credentials and Redis password come from Vault via the Dapr sidecar HTTP API.
-# Credentials never touch etcd — no ESO ExternalSecrets for this service.
+# DB credentials injected via VSO-managed K8s Secret (mathtrail-profile-db-secret).
+# Redis password comes from ESO ExternalSecret (vault-kv-backend ClusterSecretStore).
 
 env:
   - name: SERVER_PORT
     value: "8080"
-  # Non-sensitive connection params (host/port/dbname are not secrets)
+  # Non-sensitive connection params
   - name: PG_HOST
     value: "postgres-pgbouncer"
   - name: PG_PORT
@@ -24,18 +24,31 @@ env:
     value: "user-registered"
   - name: TOPIC_TASK_SOLVED
     value: "task-solved"
-  # Dapr secret store config
-  - name: DB_SECRET_STORE
-    value: "vault-db"
-  - name: DB_SECRET_KEY
-    value: "creds/profile-api-role"
-  - name: KV_SECRET_STORE
-    value: "vault"
-  - name: KV_SECRET_KEY
-    value: "local/mathtrail-profile"
+  # DB credentials from VSO-managed Secret (keys written by Vault: username, password)
+  - name: PG_USER
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-db-secret
+        key: username
+  - name: PG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-db-secret
+        key: password
+  # Redis password from ESO ExternalSecret (mathtrail-profile-secrets)
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-secrets
+        key: redis-password
+  # Kafka
+  - name: KAFKA_BROKERS
+    value: "kafka-kafka-bootstrap:9092"
+  - name: KAFKA_CONSUMER_GROUP
+    value: "profile-service"
 
 # The migration Job needs a direct DB connection with DDL privileges (superuser).
-# Uses the Bitnami postgres-postgresql K8s Secret — NOT through Vault/Dapr.
+# Uses the Bitnami postgres-postgresql K8s Secret — NOT through Vault.
 migration:
   env:
     - name: DB_HOST
@@ -54,11 +67,16 @@ migration:
     - name: DB_SSL_MODE
       value: "disable"
 
-# ESO ExternalSecret for dynamic DB creds is disabled.
-# The app fetches credentials via Dapr HTTP API at startup.
 dbDynamicSecret:
   enabled: false
 
-# vault-db-config Job still runs to configure the Vault database engine (idempotent).
 vaultDbConfig:
+  enabled: false
+
+# ESO ExternalSecret for Redis password (KV static secret via vault-kv-backend).
+externalSecrets:
   enabled: true
+  vaultPath: "local/mathtrail-profile"
+  keys:
+    - secretKey: redis-password
+      remoteKey: redis-password

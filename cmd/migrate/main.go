@@ -13,12 +13,24 @@ import (
 
 // migrate applies SQL migration files against the PostgreSQL database.
 // Used by the Helm migration Job (mathtrail-service-lib contract).
+// Credentials come from env vars DB_HOST, DB_USER, DB_PASSWORD, DB_PORT, DB_NAME, DB_SSL_MODE
+// injected by the Helm migration Job (Bitnami postgres superuser secret).
 func main() {
 	cfg := config.Load()
 	logger := logging.NewLogger(cfg.LogLevel)
 	defer logger.Sync()
 
-	db := database.NewConnection(cfg, logger)
+	dsn := fmt.Sprintf(
+		"host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
+		getEnv("DB_HOST", "postgres-postgresql"),
+		getEnv("DB_PORT", "5432"),
+		getEnv("DB_NAME", "profile"),
+		getEnv("DB_USER", "postgres"),
+		getEnv("DB_PASSWORD", ""),
+		getEnv("DB_SSL_MODE", "disable"),
+	)
+
+	db := database.NewConnection(dsn, logger)
 	sqlDB, err := db.DB()
 	if err != nil {
 		logger.Fatal("failed to get underlying sql.DB", zap.Error(err))

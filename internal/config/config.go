@@ -10,35 +10,28 @@ type Config struct {
 	// Server
 	ServerPort string
 
-	// PostgreSQL connection (non-sensitive; credentials fetched from Dapr secret store)
-	DBHost    string
-	DBPort    string
-	DBName    string
-	DBSSLMode string
+	// PostgreSQL connection; credentials injected by VSO via K8s Secret (mathtrail-profile-db-secret)
+	DBHost     string
+	DBPort     string
+	DBName     string
+	DBSSLMode  string
+	DBUser     string
+	DBPassword string
 
-	// Redis connection (non-sensitive; password fetched from Dapr secret store)
-	RedisAddr string
-	RedisDB   int
+	// Redis connection; password injected by ESO via K8s Secret (mathtrail-profile-secrets)
+	RedisAddr     string
+	RedisDB       int
+	RedisPassword string
 
 	// Cache
 	CacheTTLSeconds int
 
-	// Dapr sidecar
-	DaprHost     string
-	DaprHTTPPort string // Dapr sidecar HTTP port (for secrets API and service invocation)
-
-	// Dapr Secret Store config
-	// DBSecretStore is the Dapr component name for the database credential store, e.g. "vault-db".
-	DBSecretStore string
-	// DBSecretKey is the secret path for dynamic DB credentials, e.g. "creds/profile-api-role".
-	DBSecretKey string
-	// KVSecretStore is the Dapr component name for the KV secret store, e.g. "vault".
-	KVSecretStore string
-	// KVSecretKey is the secret path for static secrets, e.g. "local/mathtrail-profile".
-	KVSecretKey string
-
 	// Logging
 	LogLevel string
+
+	// Kafka
+	KafkaBrokers       string // comma-separated list, e.g. "kafka-kafka-bootstrap:9092"
+	KafkaConsumerGroup string
 
 	// Pub/Sub Topics
 	TopicUserRegistered string
@@ -49,42 +42,34 @@ func Load() *Config {
 	return &Config{
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 
-		DBHost:    getEnv("PG_HOST", "postgres-pgbouncer"),
-		DBPort:    getEnv("PG_PORT", "6432"),
-		DBName:    getEnv("PG_DATABASE", "profile"),
-		DBSSLMode: getEnv("PG_SSL_MODE", "disable"),
+		DBHost:     getEnv("PG_HOST", "postgres-pgbouncer"),
+		DBPort:     getEnv("PG_PORT", "6432"),
+		DBName:     getEnv("PG_DATABASE", "profile"),
+		DBSSLMode:  getEnv("PG_SSL_MODE", "disable"),
+		DBUser:     getEnv("PG_USER", ""),
+		DBPassword: getEnv("PG_PASSWORD", ""),
 
-		RedisAddr: getEnv("REDIS_ADDR", "redis-master:6379"),
-		RedisDB:   getEnvInt("REDIS_DB", 0),
+		RedisAddr:     getEnv("REDIS_ADDR", "redis-master:6379"),
+		RedisDB:       getEnvInt("REDIS_DB", 0),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 
 		CacheTTLSeconds: getEnvInt("CACHE_TTL_SECONDS", 300),
 
-		DaprHost:     getEnv("DAPR_HOST", "localhost"),
-		DaprHTTPPort: getEnv("DAPR_HTTP_PORT", "3500"),
-
-		DBSecretStore: getEnv("DB_SECRET_STORE", "vault-db"),
-		DBSecretKey:   getEnv("DB_SECRET_KEY", "creds/profile-api-role"),
-		KVSecretStore: getEnv("KV_SECRET_STORE", "vault"),
-		KVSecretKey:   getEnv("KV_SECRET_KEY", "local/mathtrail-profile"),
-
 		LogLevel: getEnv("LOG_LEVEL", "info"),
+
+		KafkaBrokers:       getEnv("KAFKA_BROKERS", "kafka-kafka-bootstrap:9092"),
+		KafkaConsumerGroup: getEnv("KAFKA_CONSUMER_GROUP", "profile-service"),
 
 		TopicUserRegistered: getEnv("TOPIC_USER_REGISTERED", "user-registered"),
 		TopicTaskSolved:     getEnv("TOPIC_TASK_SOLVED", "task-solved"),
 	}
 }
 
-// DaprAddr returns the Dapr sidecar HTTP API address (host:port).
-func (c *Config) DaprAddr() string {
-	return fmt.Sprintf("%s:%s", c.DaprHost, c.DaprHTTPPort)
-}
-
-// PgDSNTemplate returns a libpq connection string without user/password.
-// Credentials are appended at runtime after being fetched from Dapr secret store.
-func (c *Config) PgDSNTemplate() string {
+// PgDSN returns a full libpq connection string using credentials from env.
+func (c *Config) PgDSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%s dbname=%s sslmode=%s",
-		c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
+		"host=%s port=%s dbname=%s sslmode=%s user=%s password=%s",
+		c.DBHost, c.DBPort, c.DBName, c.DBSSLMode, c.DBUser, c.DBPassword,
 	)
 }
 
