@@ -3,7 +3,7 @@ You are an expert Go developer working on mathtrail-profile — the source of tr
 This service stores the Knowledge Graph (skills, mastery levels), attempt history, XP progression, and preferences.
 It is a passive data provider — other services read from it, it rarely calls out.
 
-Tech Stack: Go 1.25.7, Gin (HTTP), GORM (ORM), PostgreSQL, Redis (cache), Kafka pub/sub
+Tech Stack: Go 1.26.0, Gin (HTTP), GORM (ORM), PostgreSQL, Redis (cache), Kafka pub/sub
 Port: 8080
 Infra: infra/helm/mathtrail-profile/
 

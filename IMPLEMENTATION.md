@@ -3,7 +3,7 @@
 ## Technology Stack
 
 **Core:**
-- Go 1.25.7
+- Go 1.26.0
 - Gin (HTTP framework)
 - GORM (ORM for PostgreSQL)
 - PostgreSQL (Database)
@@ -62,7 +62,7 @@ Create the DevContainer with all development tools pre-installed so the develope
 
 **File:** `.devcontainer/Dockerfile`
 ```dockerfile
-FROM golang:1.25.7-bookworm
+FROM golang:1.26.0-bookworm
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -240,7 +240,7 @@ Create `config/config.go` to handle:
 
 #### 1.5 Production Dockerfile
 ```dockerfile
-FROM golang:1.25.7-alpine AS builder
+FROM golang:1.26.0-alpine AS builder
 
 RUN apk add --no-cache git
 

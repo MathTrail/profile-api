@@ -5,7 +5,7 @@
 User Profile service for the MathTrail platform. Manages user profiles, handles events
 (user-registered, task-solved via Kafka pub/sub), and exposes profile data via REST API.
 
-**Language:** Go 1.25.7
+**Language:** Go 1.26.0
 **Port:** 8080
 **Cluster:** k3d `mathtrail-dev`, namespace `mathtrail`
 **KUBECONFIG:** `/home/vscode/.kube/k3d-mathtrail-dev.yaml`

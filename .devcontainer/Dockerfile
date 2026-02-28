@@ -1,4 +1,4 @@
-FROM golang:1.25.7-bookworm
+FROM golang:1.26.0-bookworm
 COPY --from=ghcr.io/mathtrail/platform-env:1 /config/global.env /etc/mathtrail/platform.env
 
 RUN apt-get update && apt-get install -y \
