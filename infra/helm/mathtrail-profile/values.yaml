@@ -30,8 +30,19 @@ rollout:
   steps: []
   autoPromotionEnabled: true
 
-# Vault Database Config Job — deprecated, replaced by VCO DatabaseSecretEngineConfig CR.
-# DB engine config is now managed centrally via infra/vault-config/profile-api/.
+# Vault Config Operator CRs — deployed as part of this Helm chart into vault-config-operator ns.
+# Configures the Vault Database Engine connection and role for dynamic credential generation.
+vaultConfig:
+  enabled: true
+  db:
+    connectionName: "profile-postgres"
+    database: "profile"
+    roleName: "profile-api-role"
+  k8sAuth:
+    serviceAccount: "mathtrail-profile"
+    namespace: "mathtrail"
+
+# Vault Database Config Job — deprecated.
 vaultDbConfig:
   enabled: false
   connectionName: "profile-postgres"
