@@ -10,7 +10,6 @@
 - Redis (Profile cache)
 
 **Event-Driven Architecture:**
-- Dapr (service mesh & pub/sub)
 - Kafka (message broker)
 - CloudEvents (event standard)
 
@@ -34,7 +33,7 @@
 
 ## Overview
 
-Implement a Profile Service that manages user profiles in the MathTrail ecosystem through REST API and event-driven architecture (Dapr pub/sub & Kafka).
+Implement a Profile Service that manages user profiles in the MathTrail ecosystem through REST API and event-driven architecture (Kafka pub/sub).
 
 **Key Features:**
 - Automatic profile creation via Ory Kratos webhook events (CloudEvents)
@@ -42,7 +41,7 @@ Implement a Profile Service that manages user profiles in the MathTrail ecosyste
 - Redis cache for profile reads with invalidation on every profile mutation
 - Skill and progress tracking via task-solved events (Kafka pub/sub)
 - PostgreSQL database backend with GORM ORM
-- Full observability integration via Dapr
+- Full observability integration via OpenTelemetry
 - Local development with Skaffold dev mode (depends on mathtrail-infra-local, mathtrail-infra-testing)
 
 ---
@@ -53,7 +52,7 @@ Implement a Profile Service that manages user profiles in the MathTrail ecosyste
 - [x] Create DevContainer with all dependencies
 - [x] Set up Go project structure
 - [x] Configure Skaffold with infra-local dependency
-- [x] Configure Dapr components
+- [x] Configure Kafka components
 - [x] Initialize dependencies
 
 ### Tasks
@@ -100,8 +99,7 @@ WORKDIR /workspace
             "version": "1.31.0",
             "minikube": "none"
         },
-        "ghcr.io/eitsupi/devcontainer-features/just:0.1.1": {},
-        "ghcr.io/dapr/cli/dapr-cli:0": {}
+        "ghcr.io/eitsupi/devcontainer-features/just:0.1.1": {}
     },
     "mounts": [
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/home/vscode/.kube,type=bind,consistency=cached"
@@ -169,8 +167,8 @@ mathtrail-profile/
 │   │   ├── repository.go       # GORM repository (interface + impl)
 │   │   ├── service.go          # Business logic with cache-aside
 │   │   └── controller.go       # Gin HTTP controllers
-│   └── dapr/
-│       ├── subscriber.go       # Dapr pub/sub subscriptions
+│   └── kafka/
+│       ├── subscriber.go       # Kafka pub/sub subscriptions
 │       ├── events.go           # CloudEvents handlers
 │       └── models.go           # Event payload models
 ├── migrations/
@@ -196,11 +194,9 @@ mathtrail-profile/
 │       ├── Chart.yaml
 │       ├── values.yaml         # Helm values for k3d/Kubernetes
 │       └── templates/
-│           ├── deployment.yaml # k3d deployment with Dapr sidecar
+│           ├── deployment.yaml # k3d deployment
 │           ├── service.yaml
 │           └── configmap.yaml
-├── dapr/
-│   └── components.yaml         # Dapr Kafka pub/sub component
 ├── go.mod
 ├── go.sum
 └── README.md
@@ -216,8 +212,8 @@ go get gorm.io/gorm
 go get gorm.io/driver/postgres
 # UUID
 go get github.com/google/uuid
-# Dapr SDK
-go get github.com/dapr/go-sdk
+# Kafka client
+go get github.com/segmentio/kafka-go
 # Cloud Events
 go get github.com/cloudevents/sdk-go/v2
 # Logging
@@ -238,7 +234,7 @@ Create `config/config.go` to handle:
 - Redis connection string (host, port, password, DB index)
 - Redis cache TTL (default: 5 minutes)
 - Server port
-- Dapr sidecar host/port
+- Kafka brokers
 - Log level
 - Pub/sub topic names
 
@@ -274,7 +270,7 @@ ENTRYPOINT ["/app"]
 The profile service depends on infrastructure from `mathtrail-infra-local` (PostgreSQL, Redis, Kafka, Strimzi) and testing infrastructure from `mathtrail-infra-testing` (Grafana k6 operator). Skaffold's `requires` field references both configs so that `skaffold dev` brings up everything.
 
 ```yaml
-apiVersion: skaffold/v4beta12
+apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
   name: mathtrail-profile
@@ -824,45 +820,29 @@ const (
 
 ---
 
-## Stage 4: Dapr/Event Integration
+## Stage 4: Kafka/Event Integration
 
 ### Objectives
-- [x] Set up Dapr pub/sub subscriber
+- [x] Set up Kafka pub/sub subscriber
 - [x] Implement user-registered event handler
 - [x] Implement task-solved event handler
-- [x] Configure Dapr components
+- [x] Configure Kafka consumer
 
 ### Tasks
 
-#### 4.1 Dapr Component Configuration
-**File:** `dapr/components.yaml`
+#### 4.1 Kafka Consumer Configuration
+Kafka consumer configuration is defined in environment variables (`KAFKA_BROKERS`, `KAFKA_GROUP_ID`).
+The service connects directly to Kafka using `segmentio/kafka-go`.
 
-```yaml
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: pubsub
-spec:
-  type: pubsub.kafka
-  version: v1
-  metadata:
-  - name: brokers
-    value: kafka:9092
-  - name: consumerGroup
-    value: profile-service
-  - name: topics
-    value: "user-registered,task-solved"
-```
+Note: State store not required; Profile Service uses GORM + PostgreSQL for persistence and Redis for read-through caching.
 
-Note: Dapr state store not required; Profile Service uses GORM + PostgreSQL for persistence and Redis for read-through caching.
-
-#### 4.2 Dapr Event Subscriber Handler
-**File:** `internal/dapr/subscriber.go`
+#### 4.2 Kafka Event Subscriber Handler
+**File:** `internal/kafka/subscriber.go`
 
 ```go
 import (
     "context"
-    daprclient "github.com/dapr/go-sdk/client"
+    "github.com/segmentio/kafka-go"
     "github.com/cloudevents/sdk-go/v2/event"
     "go.uber.org/zap"
 )
@@ -870,14 +850,13 @@ import (
 type EventHandler struct {
     profileService profile.Service
     logger         *zap.Logger
-    daprClient     daprclient.Client
+    reader         *kafka.Reader
 }
 
 // Subscribe registers handlers for topics
 func (eh *EventHandler) Subscribe(ctx context.Context) error {
-    // Register handlers with Dapr client
-    // Subscribe to user-registered topic
-    // Subscribe to task-solved topic
+    // Start Kafka consumer loop
+    // Route messages by topic to handlers
 }
 
 // HandleUserRegistered processes CloudEvents from user-registered topic
@@ -898,7 +877,7 @@ func (eh *EventHandler) HandleTaskSolved(ctx context.Context, e *event.Event) er
 ```
 
 #### 4.3 CloudEvents Models
-**File:** `internal/dapr/models.go`
+**File:** `internal/kafka/models.go`
 
 ```go
 import ce "github.com/cloudevents/sdk-go/v2/event"
@@ -955,10 +934,8 @@ func main() {
     // Setup router
     router := server.NewRouter(container.ProfileController)
 
-    // Register Dapr pub/sub endpoints
-    // POST /dapr/subscribe - Dapr calls this to discover subscriptions
-    // POST /user-registered - Handle user-registered events
-    // POST /task-solved - Handle task-solved events
+    // Start Kafka consumer in background goroutine
+    // Handles user-registered and task-solved events
 
     // Start server
     addr := fmt.Sprintf(":%s", cfg.ServerPort)
@@ -978,7 +955,7 @@ Infrastructure (PostgreSQL, Redis, Kafka) is deployed via Skaffold's `requires` 
 
 ### Objectives
 - [x] Configure logging and tracing
-- [x] Baseline metrics via Dapr sidecar
+- [x] Baseline metrics via OTel
 - [x] (skip) Custom business metrics (deferred until SLOs defined)
 
 ### Tasks
@@ -995,7 +972,7 @@ logger.Info("profile created",
 ```
 
 #### 5.2 Metrics & Tracing
-Integrate with Dapr sideca & observability stack:
+Integrate with OTel observability stack:
 - Profile creation count (counter metric)
 - API response times (histogram)
 - Event processing latency (histogram)
@@ -1110,25 +1087,19 @@ http://localhost:8080/swagger/index.html
 Configure:
 - Image: mathtrail-profile (built locally by Skaffold, no registry push)
 - Resource limits (CPU, memory)
-- Environment variables (DB_HOST, REDIS_HOST, REDIS_PORT, CACHE_TTL, DAPR_HOST, etc.)
+- Environment variables (DB_HOST, REDIS_HOST, REDIS_PORT, CACHE_TTL, etc.)
 - Service type: ClusterIP (for k3d internal service discovery)
 - Replicas: 1 (single instance for k3d)
-- Dapr annotations:
-  - `dapr.io/enabled: "true"`
-  - `dapr.io/id: "profile-service"`
-  - `dapr.io/port: "8080"`
-
 **File:** `helm/mathtrail-profile/templates/configmap.yaml`
-- Dapr pub/sub configuration
 - Kafka broker addresses
 - Log levels
 
 #### 6.5 README Updates
 Update main `README.md` with:
 - **Quick Start** — Using justfile: `just dev` (Skaffold dev loop), `just test`
-- **Architecture Diagram** — Show GORM, Gin, Dapr, CloudEvents flow
-- **Configuration Options** — Environment variables for PostgreSQL, Redis, Dapr, Kafka
-- **Tech Stack** — Go, Gin, GORM, PostgreSQL, Redis, Dapr, Kafka, CloudEvents, Swagger, Skaffold, Docker, k3d, Helm
+- **Architecture Diagram** — Show GORM, Gin, Kafka, CloudEvents flow
+- **Configuration Options** — Environment variables for PostgreSQL, Redis, Kafka
+- **Tech Stack** — Go, Gin, GORM, PostgreSQL, Redis, Kafka, CloudEvents, Swagger, Skaffold, Docker, k3d, Helm
 - **Local Development** — DevContainer with Skaffold dev loop against k3d
 - **Debugging** — Delve remote debugging with Skaffold debug
 - **Testing** — testify, unit vs integration tests, k6 scenario & load tests, coverage
@@ -1261,7 +1232,7 @@ k6 run -e BASE_URL=http://localhost:8080 k6/load/profile-read.js
 ## Summary Checklist
 
 ### Stage 1: Project Setup
-- [x] DevContainer created with Go, Skaffold, kubectl, Helm, Dapr CLI, Delve
+- [x] DevContainer created with Go, Skaffold, kubectl, Helm, Delve
 - [x] Go project structure created
 - [x] Dependencies installed
 - [x] Skaffold config with mathtrail-infra-local dependency
@@ -1283,14 +1254,14 @@ k6 run -e BASE_URL=http://localhost:8080 k6/load/profile-read.js
 - [x] Swagger documentation added
 
 ### Stage 4: Events
-- [x] Dapr components configured
+- [x] Kafka consumer configured
 - [x] user-registered handler implemented
 - [x] task-solved handler implemented
 - [x] Event models defined
 
 ### Stage 5: Observability
 - [x] Logging configured
-- [x] Baseline metrics collection enabled (Dapr)
+- [x] Baseline metrics collection enabled (OTel)
 - [x] (skip) Custom business metrics (deferred)
 
 ### Stage 6: Documentation & Deployment

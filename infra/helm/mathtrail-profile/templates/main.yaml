@@ -4,6 +4,8 @@
 ---
 {{ include "mathtrail-service-lib.configMap" . }}
 ---
+{{ include "mathtrail-service-lib.vaultDbConfigJob" . }}
+---
 {{ include "mathtrail-service-lib.migrationJob" . }}
 ---
 {{ include "mathtrail-service-lib.deployment" . }}
@@ -11,3 +13,7 @@
 {{ include "mathtrail-service-lib.service" . }}
 ---
 {{ include "mathtrail-service-lib.hpa" . }}
+---
+{{ include "mathtrail-service-lib.vaultAuth" . }}
+---
+{{ include "mathtrail-service-lib.vaultDynamicSecret" . }}

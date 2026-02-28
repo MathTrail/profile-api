@@ -36,8 +36,8 @@ func main() {
 
 	logger := container.Logger
 
-	// Setup Gin router with all routes, Dapr handlers, and Swagger
-	router := server.NewRouter(container.ProfileController, container.EventHandler, container, logger)
+	// Setup Gin router with all routes and Swagger
+	router := server.NewRouter(container.ProfileController, container, logger)
 
 	// Create HTTP server
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
@@ -49,6 +49,15 @@ func main() {
 	// Graceful shutdown: listen for SIGTERM/SIGINT
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+
+	// Start Kafka consumers in background goroutines
+	for _, consumer := range container.Consumers {
+		go func(c interface{ Run(context.Context) error }) {
+			if err := c.Run(ctx); err != nil {
+				logger.Error("kafka consumer exited with error", zap.Error(err))
+			}
+		}(consumer)
+	}
 
 	// Start server in a goroutine
 	go func() {

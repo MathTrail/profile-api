@@ -3,16 +3,16 @@ You are an expert Go developer working on mathtrail-profile — the source of tr
 This service stores the Knowledge Graph (skills, mastery levels), attempt history, XP progression, and preferences.
 It is a passive data provider — other services read from it, it rarely calls out.
 
-Tech Stack: Go 1.25.7, Gin (HTTP), GORM (ORM), PostgreSQL, Redis (cache), Dapr pub/sub over Kafka
+Tech Stack: Go 1.25.7, Gin (HTTP), GORM (ORM), PostgreSQL, Redis (cache), Kafka pub/sub
 Port: 8080
 Infra: infra/helm/mathtrail-profile/
 
 # Communication Map
-Dapr App ID: mathtrail-profile
+App ID: mathtrail-profile
 Inbound:
   - REST API: GET/PUT /profiles/{id}, POST /webhooks/registration
-  - Dapr pub/sub: subscribes to `identity.registration.completed` (auto-create profile)
-  - Dapr pub/sub: subscribes to `task.attempt.completed` (update skills/XP)
+  - Kafka pub/sub: subscribes to `identity.registration.completed` (auto-create profile)
+  - Kafka pub/sub: subscribes to `task.attempt.completed` (update skills/XP)
 Outbound: None (passive data provider)
 Secrets (Vault): secret/data/{env}/mathtrail-profile/db-password, secret/data/{env}/mathtrail-profile/redis-password
 
@@ -31,6 +31,6 @@ Example: feat(profile): add knowledge graph skill model
 # Testing Strategy
 Run: `just test` or `go test ./... -v`
 Unit tests: *_test.go files next to source, use testify for assertions
-Integration tests: Use Dapr test containers for pub/sub testing
+Integration tests: Use Kafka test containers for pub/sub testing
 Load tests: Grafana k6 scripts in mathtrail-infra-testing
 Priority: Unit tests 80%, Integration tests 20%

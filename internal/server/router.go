@@ -9,7 +9,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 
-	"github.com/MathTrail/profile-api/internal/dapr"
 	"github.com/MathTrail/profile-api/internal/profile"
 )
 
@@ -20,7 +19,7 @@ type ReadinessChecker interface {
 
 // NewRouter creates a Gin engine with all routes, middleware, and Swagger UI.
 // It replaces gin.Default() with zap-based request logging and panic recovery.
-func NewRouter(profileController *profile.Controller, eventHandler *dapr.EventHandler, readiness ReadinessChecker, logger *zap.Logger) *gin.Engine {
+func NewRouter(profileController *profile.Controller, readiness ReadinessChecker, logger *zap.Logger) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 
@@ -40,9 +39,6 @@ func NewRouter(profileController *profile.Controller, eventHandler *dapr.EventHa
 	// API v1 routes
 	api := router.Group("/api/v1")
 	profileController.RegisterRoutes(api)
-
-	// Dapr pub/sub subscription and event handler routes
-	eventHandler.RegisterRoutes(router)
 
 	// Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

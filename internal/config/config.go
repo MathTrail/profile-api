@@ -10,28 +10,28 @@ type Config struct {
 	// Server
 	ServerPort string
 
-	// Database
+	// PostgreSQL connection; credentials injected by VSO via K8s Secret (mathtrail-profile-db-secret)
 	DBHost     string
 	DBPort     string
-	DBUser     string
-	DBPassword string
 	DBName     string
 	DBSSLMode  string
+	DBUser     string
+	DBPassword string
 
-	// Redis
+	// Redis connection; password injected by ESO via K8s Secret (mathtrail-profile-secrets)
 	RedisAddr     string
-	RedisPassword string
 	RedisDB       int
+	RedisPassword string
 
 	// Cache
 	CacheTTLSeconds int
 
-	// Dapr
-	DaprHost string
-	DaprPort string
-
 	// Logging
 	LogLevel string
+
+	// Kafka
+	KafkaBrokers       string // comma-separated list, e.g. "kafka-kafka-bootstrap:9092"
+	KafkaConsumerGroup string
 
 	// Pub/Sub Topics
 	TopicUserRegistered string
@@ -42,33 +42,34 @@ func Load() *Config {
 	return &Config{
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 
-		DBHost:     getEnv("DB_HOST", "postgres-postgresql"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "profile"),
-		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		DBHost:     getEnv("PG_HOST", "postgres-pgbouncer"),
+		DBPort:     getEnv("PG_PORT", "6432"),
+		DBName:     getEnv("PG_DATABASE", "profile"),
+		DBSSLMode:  getEnv("PG_SSL_MODE", "disable"),
+		DBUser:     getEnv("PG_USER", ""),
+		DBPassword: getEnv("PG_PASSWORD", ""),
 
 		RedisAddr:     getEnv("REDIS_ADDR", "redis-master:6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvInt("REDIS_DB", 0),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 
 		CacheTTLSeconds: getEnvInt("CACHE_TTL_SECONDS", 300),
 
-		DaprHost: getEnv("DAPR_HOST", "localhost"),
-		DaprPort: getEnv("DAPR_PORT", "3500"),
-
 		LogLevel: getEnv("LOG_LEVEL", "info"),
+
+		KafkaBrokers:       getEnv("KAFKA_BROKERS", "kafka-kafka-bootstrap:9092"),
+		KafkaConsumerGroup: getEnv("KAFKA_CONSUMER_GROUP", "profile-service"),
 
 		TopicUserRegistered: getEnv("TOPIC_USER_REGISTERED", "user-registered"),
 		TopicTaskSolved:     getEnv("TOPIC_TASK_SOLVED", "task-solved"),
 	}
 }
 
-func (c *Config) DSN() string {
+// PgDSN returns a full libpq connection string using credentials from env.
+func (c *Config) PgDSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode,
+		"host=%s port=%s dbname=%s sslmode=%s user=%s password=%s",
+		c.DBHost, c.DBPort, c.DBName, c.DBSSLMode, c.DBUser, c.DBPassword,
 	)
 }
 

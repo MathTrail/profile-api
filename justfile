@@ -1,10 +1,37 @@
 ﻿# MathTrail Profile Service
 
 set shell := ["bash", "-c"]
+set dotenv-load
+set dotenv-path := "/etc/mathtrail/platform.env"
+set export
 
-NAMESPACE := "mathtrail"
+NAMESPACE := env_var("NAMESPACE")
 SERVICE := "mathtrail-profile"
 CHART_NAME := "mathtrail-profile"
+
+# -- Portable Image Build (buildctl → buildah) --------------------------------
+
+# Build and push a container image using the best available builder
+# CI (K3s runner): buildctl talks to buildkitd sidecar
+# Local dev: buildah builds rootlessly
+[private]
+build-image tag:
+    #!/bin/bash
+    set -e
+    if command -v buildctl &>/dev/null; then
+        echo "🔨 Building with BuildKit..."
+        buildctl build \
+            --frontend=dockerfile.v0 \
+            --local context=. \
+            --local dockerfile=. \
+            --output type=image,name={{tag}},push=true,registry.insecure=true \
+            --export-cache type=inline \
+            --import-cache type=registry,ref={{tag}}
+    else
+        echo "🔨 Building with Buildah..."
+        buildah bud -t {{tag}} .
+        buildah push {{tag}}
+    fi
 
 # -- Development ---------------------------------------------------------------
 
@@ -46,9 +73,9 @@ logs:
 status:
     kubectl get pods -n {{ NAMESPACE }} -l app.kubernetes.io/name={{ SERVICE }}
 
-# Build Docker image locally
-docker-build:
-    docker build -t {{ SERVICE }}:latest .
+# Build container image locally (uses kaniko → buildah → docker fallback)
+image-build:
+    just build-image {{ SERVICE }}:latest
 
 # Generate Swagger docs
 swagger:
@@ -98,13 +125,13 @@ release-chart:
     echo "Packaging {{ CHART_NAME }} v${VERSION}..."
     helm package "$CHART_DIR" --destination /tmp/mathtrail-charts
 
-    CHARTS_REPO="/tmp/mathtrail-charts-repo"
-    rm -rf "$CHARTS_REPO"
-    git clone git@github.com:MathTrail/charts.git "$CHARTS_REPO"
-    cp /tmp/mathtrail-charts/{{ CHART_NAME }}-*.tgz "$CHARTS_REPO/charts/"
-    cd "$CHARTS_REPO"
+    CHARTS_REPO_DIR="/tmp/mathtrail-charts-repo"
+    rm -rf "$CHARTS_REPO_DIR"
+    git clone git@github.com:MathTrail/charts.git "$CHARTS_REPO_DIR"
+    cp /tmp/mathtrail-charts/{{ CHART_NAME }}-*.tgz "$CHARTS_REPO_DIR/charts/"
+    cd "$CHARTS_REPO_DIR"
     helm repo index ./charts \
-        --url https://MathTrail.github.io/charts/charts
+        --url ${CHARTS_REPO}
     git add charts/
     git commit -m "chore: release {{ CHART_NAME }} v${VERSION}"
     git push

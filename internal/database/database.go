@@ -5,16 +5,20 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/MathTrail/profile-api/internal/config"
 	"github.com/MathTrail/profile-api/internal/logging"
 )
 
-// NewConnection opens a GORM PostgreSQL connection using the provided config.
+// NewConnection opens a GORM PostgreSQL connection using an explicit DSN.
+// The DSN must include all connection parameters including user and password.
+// Credentials should be fetched from Vault before calling this function.
 // SQL queries are logged through the zap-based GORM logger.
-func NewConnection(cfg *config.Config, logger *zap.Logger) *gorm.DB {
+func NewConnection(dsn string, logger *zap.Logger) *gorm.DB {
 	gormLogger := logging.NewGormLogger(logger)
 
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, // disables implicit prepared statements; required for PgBouncer transaction mode
+	}), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
@@ -29,11 +33,7 @@ func NewConnection(cfg *config.Config, logger *zap.Logger) *gorm.DB {
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(5)
 
-	logger.Info("database connection established",
-		zap.String("host", cfg.DBHost),
-		zap.String("port", cfg.DBPort),
-		zap.String("dbname", cfg.DBName),
-	)
+	logger.Info("database connection established")
 
 	return db
 }

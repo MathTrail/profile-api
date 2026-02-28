@@ -1,25 +1,19 @@
 # Dev overlay: K3s local development
-# Hardcoded credentials — acceptable for local dev only
+# DB credentials injected via VSO-managed K8s Secret (mathtrail-profile-db-secret).
+# Redis password comes from ESO ExternalSecret (vault-kv-backend ClusterSecretStore).
 
 env:
   - name: SERVER_PORT
     value: "8080"
-  - name: DB_HOST
-    value: "postgres-postgresql"
-  - name: DB_PORT
-    value: "5432"
-  - name: DB_USER
-    value: "postgres"
-  - name: DB_PASSWORD
-    value: "postgres"
-  - name: DB_NAME
+  # Non-sensitive connection params
+  - name: PG_HOST
+    value: "postgres-pgbouncer"
+  - name: PG_PORT
+    value: "6432"
+  - name: PG_DATABASE
     value: "profile"
-  - name: DB_SSL_MODE
-    value: "disable"
   - name: REDIS_ADDR
     value: "redis-master:6379"
-  - name: REDIS_PASSWORD
-    value: ""
   - name: REDIS_DB
     value: "0"
   - name: CACHE_TTL_SECONDS
@@ -30,3 +24,59 @@ env:
     value: "user-registered"
   - name: TOPIC_TASK_SOLVED
     value: "task-solved"
+  # DB credentials from VSO-managed Secret (keys written by Vault: username, password)
+  - name: PG_USER
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-db-secret
+        key: username
+  - name: PG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-db-secret
+        key: password
+  # Redis password from ESO ExternalSecret (mathtrail-profile-secrets)
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mathtrail-profile-secrets
+        key: redis-password
+  # Kafka
+  - name: KAFKA_BROKERS
+    value: "kafka-kafka-bootstrap:9092"
+  - name: KAFKA_CONSUMER_GROUP
+    value: "profile-service"
+
+# The migration Job needs a direct DB connection with DDL privileges (superuser).
+# Uses the Bitnami postgres-postgresql K8s Secret — NOT through Vault.
+migration:
+  env:
+    - name: DB_HOST
+      value: "postgres-postgresql"
+    - name: DB_PORT
+      value: "5432"
+    - name: DB_USER
+      value: "postgres"
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-postgresql
+          key: postgres-password
+    - name: DB_NAME
+      value: "profile"
+    - name: DB_SSL_MODE
+      value: "disable"
+
+dbDynamicSecret:
+  enabled: false
+
+vaultDbConfig:
+  enabled: false
+
+# ESO ExternalSecret for Redis password (KV static secret via vault-kv-backend).
+externalSecrets:
+  enabled: true
+  vaultPath: "local/mathtrail-profile"
+  keys:
+    - secretKey: redis-password
+      remoteKey: redis-password

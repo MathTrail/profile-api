@@ -1,24 +1,32 @@
-apiVersion: skaffold/v4beta12
+apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
   name: mathtrail-profile
 
 build:
   local:
-    push: true
+    push: false
+    tryImportMissing: false
   insecureRegistries:
-    - k3d-mathtrail-registry.localhost:5050
+    - ${REGISTRY}
   artifacts:
     - image: profile-api
-      docker:
-        dockerfile: Dockerfile
+      custom:
+        buildCommand: buildah bud --tag $IMAGE . && buildah push --tls-verify=false $IMAGE
+        dependencies:
+          paths:
+            - "**/*.go"
+            - go.mod
+            - go.sum
+            - Dockerfile
+            - migrations/
 
 deploy:
   helm:
     releases:
       - name: mathtrail-profile
         chartPath: infra/helm/mathtrail-profile
-        namespace: mathtrail
+        namespace: "{{.NAMESPACE}}"
         createNamespace: true
         wait: true
         valuesFiles:

@@ -13,11 +13,11 @@ Source of truth for student learning state — stores knowledge graph, skill his
 - **Language**: Go 1.25.7
 - **Framework**: Gin (HTTP), GORM (ORM)
 - **Database**: PostgreSQL (persistent), Redis (cache)
-- **Events**: Dapr pub/sub over Kafka (CloudEvents)
+- **Events**: Kafka pub/sub (CloudEvents)
 - **API Docs**: Swagger/OpenAPI
 - **Testing**: Go testing + testify, Grafana k6
 
-## API & Communication (Dapr)
+## API & Communication
 - **Inbound**: REST API (GET/PUT /profiles/{id}), Kratos webhook (POST /webhooks/registration)
 - **Outbound**: None (passive data provider)
 - **Subscribes**: `identity.registration.completed` (auto-create profile)
@@ -45,5 +45,5 @@ Standard `infra/` layout:
 
 ## Roadmap
 1. Implement Knowledge Graph data model (skills → topics → prerequisites)
-2. Add Dapr pub/sub handler for `task.attempt.completed` events
+2. Add Kafka pub/sub handler for `task.attempt.completed` events
 3. Build Redis cache layer with write-through invalidation
