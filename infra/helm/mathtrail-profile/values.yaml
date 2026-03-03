@@ -1,3 +1,8 @@
+db:
+  databases:
+    - name: profile
+      vaultPrivileges: true
+
 replicaCount: 1
 
 image:
