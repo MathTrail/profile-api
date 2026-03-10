@@ -10,7 +10,7 @@ Source of truth for student learning state — stores knowledge graph, skill his
 - Cache profiles in Redis for fast reads
 
 ## Tech Stack
-- **Language**: Go 1.25.7
+- **Language**: Go 1.26.0
 - **Framework**: Gin (HTTP), GORM (ORM)
 - **Database**: PostgreSQL (persistent), Redis (cache)
 - **Events**: Kafka pub/sub (CloudEvents)

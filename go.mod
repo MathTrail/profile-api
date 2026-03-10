@@ -1,6 +1,8 @@
 module github.com/MathTrail/profile-api
 
-go 1.25.7
+go 1.26.0
+
+toolchain go1.26.0
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
