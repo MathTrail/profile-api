@@ -2,6 +2,9 @@ db:
   databases:
     - name: profile
       vaultPrivileges: true
+  # Local dev: points to dedicated profile-postgres instance.
+  # In staging/prod this is overridden by the external postgres host.
+  postgresHost: postgres-postgresql
 
 replicaCount: 1
 

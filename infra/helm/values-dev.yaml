@@ -7,7 +7,7 @@ env:
     value: "8080"
   # Non-sensitive connection params
   - name: PG_HOST
-    value: "postgres-pgbouncer"
+    value: "profile-postgres-pgbouncer"
   - name: PG_PORT
     value: "6432"
   - name: PG_DATABASE
@@ -52,7 +52,7 @@ env:
 migration:
   env:
     - name: DB_HOST
-      value: "postgres-postgresql"
+      value: "profile-postgres-postgresql"
     - name: DB_PORT
       value: "5432"
     - name: DB_USER
@@ -60,7 +60,7 @@ migration:
     - name: DB_PASSWORD
       valueFrom:
         secretKeyRef:
-          name: postgres-postgresql
+          name: profile-postgres-postgresql
           key: postgres-password
     - name: DB_NAME
       value: "profile"
@@ -72,6 +72,9 @@ dbDynamicSecret:
 
 vaultDbConfig:
   enabled: false
+
+db:
+  postgresHost: profile-postgres-postgresql
 
 # ESO ExternalSecret for Redis password (KV static secret via vault-kv-backend).
 externalSecrets:

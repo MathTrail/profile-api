@@ -1,0 +1,6 @@
+dependencies:
+- name: redis
+  repository: https://MathTrail.github.io/charts/charts
+  version: 25.3.2
+digest: sha256:1cb6bb62e95b3de8b6193dd60d995ef5fbcd309fae55bc63ac9225ff0803db18
+generated: "2026-03-10T00:00:00.000000000Z"

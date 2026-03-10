@@ -42,3 +42,41 @@ portForward:
     namespace: mathtrail
     port: 8080
     localPort: 8081
+
+requires:
+  - configs:
+      - profile-local-deps
+
+---
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: profile-local-deps
+
+build:
+  artifacts: []
+
+deploy:
+  statusCheck: true
+  helm:
+    releases:
+      - name: profile-postgres
+        namespace: "{{.NAMESPACE}}"
+        chartPath: infra/local/helm/profile-postgres
+        createNamespace: true
+        wait: true
+        skipBuildDependencies: true
+
+      - name: profile-pgbouncer
+        namespace: "{{.NAMESPACE}}"
+        chartPath: infra/local/helm/profile-pgbouncer
+        createNamespace: true
+        wait: true
+        skipBuildDependencies: true
+
+      - name: profile-redis
+        namespace: "{{.NAMESPACE}}"
+        chartPath: infra/local/helm/profile-redis
+        createNamespace: true
+        wait: true
+        skipBuildDependencies: true

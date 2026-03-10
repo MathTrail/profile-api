@@ -1,0 +1,15 @@
+# Redis local development values for profile-api.
+# Bitnami Redis 25.3.2
+
+redis:
+  architecture: standalone
+
+  auth:
+    enabled: true
+    password: "mathtrail"
+
+  master:
+    persistence:
+      enabled: true
+      size: 256Mi
+    resourcesPreset: "nano"

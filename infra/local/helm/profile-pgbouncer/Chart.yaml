@@ -1,0 +1,4 @@
+apiVersion: v2
+name: profile-pgbouncer
+description: PgBouncer for profile-api (local dev only)
+version: 0.1.0
